@@ -1,0 +1,12 @@
+version: '2'
+services:
+  oracle21g:
+    image: gvenzl/oracle-xe
+    container_name: Oracle
+    volumes: 
+      - ./Oracle/Data:/opt/oracle/ordata
+    restart: unless-stopped
+    ports:
+      - 3305:1521
+    environment:
+      - ORACLE_PASSWORD=test

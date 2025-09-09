@@ -1,0 +1,13 @@
+version: "3"
+
+services:
+  mysql:
+    image: mariadb:latest
+    restart: unless-stopped
+    container_name: MariaDB
+    volumes:
+      - ./MariaDB:/var/lib/mysql
+    ports:
+      - 3307:3306
+    environment:
+      - MYSQL_ROOT_PASSWORD=test

@@ -1,0 +1,76 @@
+docker ps
+에서 MiniprojectDB
+docker inspect <컨테이너ID> --format '{{ index .Config.Labels "com.docker.compose.project.working_dir" }}'
+docker inspect postgres --format '{{ index .Config.Labels "com.docker.compose.project.working_dir" }}'
+
+docker ps -q | ForEach-Object {
+    docker inspect $_ --format '{{ index .Config.Labels "com.docker.compose.project.working_dir" }}'
+}
+
+# 수정 전
+docker inspect <컨테이너_이름_또는_ID> -f '{{ index .Config.Labels "com.docker.compose.project.working_dir" }}'
+
+# 수정 후 (PowerShell 용) ✅
+docker inspect <컨테이너_이름_또는_ID> -f '{{ index .Config.Labels \"com.docker.compose.project.working_dir\" }}'
+docker inspect MariaDB -f '{{ index .Config.Labels \"com.docker.compose.project.working_dir\" }}'
+
+docker-compose down
+docker-compose up -d
+
+docker rm -f pgadmin
+docker rm -f sqlserver
+docker rm -f postgres
+docker rm -f oracle21g
+docker rm -f mysql
+docker rm -f mariadb
+
+
+
+db연결.docker-compose.yml에 추가
+
+  miniproject:
+    image: mariadb:latest
+    restart: unless-stopped
+    container_name: MiniprojectDB
+    volumes:
+      - ./RDBMS/MiniprojectDB:/var/lib/mysql
+    ports:
+      - 30000:3306
+    environment:
+      - MYSQL_ROOT_PASSWORD=15932!miniprojectdb
+
+db eaver에 마리아db선택하고 
+localhost,30000,root,15932!miniprojectdb
+로 연결.데이터베이스 이름은 없음
+
+
+CREATE TABLE glof (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    지역 VARCHAR(50),
+    업소명 VARCHAR(200),
+    사업자명_대표자 VARCHAR(100),
+    소재지 VARCHAR(300),
+    총면적_제곱미터 BIGINT,
+    홀수_홀 INT,
+    세부종류 VARCHAR(100)
+);
+
+
+import pandas as pd
+from sqlalchemy import create_engine
+
+# DB 연결
+engine = create_engine("mysql+pymysql://root:15932!miniprojectdb@192.168.0.41:30000/miniproject")
+
+# CSV 읽기
+df = pd.read_csv(r"D:\github\miniproject\문화체육관광부_전국 골프장 현황_20221231.csv")
+
+# DB에 저장 (id는 자동 생성되게, DataFrame엔 없음)
+df.to_sql("glof", con=engine, if_exists="replace", index=False)
+
+# id 컬럼 자동 증가 추가 (필요시 ALTER)
+with engine.connect() as conn:
+    conn.execute("""
+        ALTER TABLE glof
+        ADD COLUMN id INT PRIMARY KEY AUTO_INCREMENT FIRST;
+    """)

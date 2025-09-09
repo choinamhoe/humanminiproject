@@ -1,0 +1,92 @@
+version: "3"
+
+services:
+  mariadb:
+    image: mariadb:latest
+    restart: unless-stopped
+    container_name: MariaDB
+    volumes:
+      - ./RDBMS/MariaDB:/var/lib/mysql
+    ports:
+      - 3307:3306
+    environment:
+      - MYSQL_ROOT_PASSWORD=test
+
+  miniproject:
+    image: mariadb:latest
+    restart: unless-stopped
+    container_name: MiniprojectDB
+    volumes:
+      - ./RDBMS/MiniprojectDB:/var/lib/mysql
+    ports:
+      - 30000:3306
+    environment:
+      - MYSQL_ROOT_PASSWORD=15932!miniprojectdb
+
+  mysql:
+    image: mysql:latest
+    container_name: MySQL
+    restart: unless-stopped
+    volumes:
+      - ./RDBMS/Mysql:/var/lib/mysql
+    ports:
+      - 13306:3306
+    environment:
+      - MYSQL_ROOT_PASSWORD=test
+
+  oracle21g:
+    image: gvenzl/oracle-xe
+    container_name: Oracle
+    volumes: 
+      - ./RDBMS/Oracle/Data:/opt/oracle/ordata
+    restart: unless-stopped
+    ports:
+      - 3305:1521
+    environment:
+      - ORACLE_PASSWORD=test
+
+  postgres:
+    container_name: postgres
+    image: postgres:10
+    restart: always
+    environment:
+      - POSTGRES_USER=test
+      - POSTGRES_PASSWORD=test
+      - TZ=Asia/Seoul
+    volumes:
+      - ./RDBMS/Postgres/data:/var/lib/postgresql/data
+    ports:
+      - "3308:5432"
+    networks:
+      - service
+  pgadmin:
+    container_name: pgadmin
+    image: dpage/pgadmin4
+    restart: unless-stopped
+    environment:
+      - PGADMIN_DEFAULT_EMAIL=test@test.com
+      - PGADMIN_DEFAULT_PASSWORD=test
+      - TZ=Asia/Seoul
+    ports:
+      - "3309:80"
+    networks:
+      - service
+  sqlserver:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    container_name: sqlserver
+    ports:
+      - "3310:1433"
+    environment:
+      - ACCEPT_EULA=Y
+      - MSSQL_SA_PASSWORD=YourStrong!Passw0rd  # 계정명 : sa 
+    volumes:
+      # - ./RDBMS/SqlServer/data:/var/opt/mssql
+      - sqlserver_data:/var/opt/mssql
+    restart: unless-stopped
+    networks:
+      - service
+networks:
+  service:
+    driver: bridge
+volumes:
+  sqlserver_data:

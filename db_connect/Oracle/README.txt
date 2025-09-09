@@ -1,0 +1,1 @@
+ docker exec -it Oracle sqlplus system/test

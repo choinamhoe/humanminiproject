@@ -1,0 +1,33 @@
+version: '3.6'
+
+services:
+  postgres:
+    container_name: postgres
+    image: postgres:10
+    restart: always
+    environment:
+      - POSTGRES_USER=test
+      - POSTGRES_PASSWORD=test
+      - TZ=Asia/Seoul
+    volumes:
+      - ./Postgres/data:/var/lib/postgresql/data
+    ports:
+      - "3308:5432"
+    networks:
+      - service
+  pgadmin:
+    container_name: pgadmin
+    image: dpage/pgadmin4
+    restart: unless-stopped
+    environment:
+      - PGADMIN_DEFAULT_EMAIL=test@test.com
+      - PGADMIN_DEFAULT_PASSWORD=test
+      - TZ=Asia/Seoul
+    ports:
+      - "3309:80"
+    networks:
+      - service
+networks:
+  service:
+    driver: bridge
+

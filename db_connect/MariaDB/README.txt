@@ -1,0 +1,1 @@
+ docker exec -it MariaDB mariadb -u root -p
