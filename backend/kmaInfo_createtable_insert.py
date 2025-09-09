@@ -4,13 +4,14 @@ Created on Tue Sep  9 10:18:46 2025
 
 @author: human
 """
-
+import os
 import pandas as pd
 from sqlalchemy import text
 import glob
-from db_connect import get_connection
+from config.db_connect import get_connection
 
 engine = get_connection() 
+
 
 # 2. 연도별 CSV 파일 경로 가져오기
 file_list = glob.glob("E:/최남회/250909_미니프로젝트/자료/기상청날씨자료/*.csv")  # 경로는 맞게 수정
