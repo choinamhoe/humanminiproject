@@ -4,10 +4,10 @@ Created on Tue Sep  9 10:18:46 2025
 
 @author: human
 """
-
+import os
 import pandas as pd
 from sqlalchemy import text
-from db_connect import get_connection
+from config.db_connect import get_connection
 
 engine = get_connection() 
 
