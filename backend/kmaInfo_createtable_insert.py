@@ -8,9 +8,7 @@ import os
 import pandas as pd
 from sqlalchemy import text
 import glob
-from config.db_connect import get_connection
-
-engine = get_connection() 
+from db.pool import engine
 
 query = """
     DROP TABLE IF EXISTS kmaInfo;

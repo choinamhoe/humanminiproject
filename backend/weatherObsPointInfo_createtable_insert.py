@@ -7,8 +7,7 @@ Created on Tue Sep  9 10:18:46 2025
 import os
 import pandas as pd
 from sqlalchemy import text
-from config.db_connect import get_connection
-engine = get_connection() 
+from db.pool import engine
 
 query = """
     DROP TABLE IF EXISTS weatherObsPointInfo;
