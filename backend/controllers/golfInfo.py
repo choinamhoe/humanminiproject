@@ -1,6 +1,5 @@
 from fastapi.responses import JSONResponse
 from fastapi import status
-import json
 
 from services.golfInfo import post_services_golfList
 
@@ -9,13 +8,12 @@ async def post_controllers_golfList():
     try:
         res = post_services_golfList()
         print(f"controllers post_controllers_golfList res : {res}")
-        res_dict = json.loads(res)
+        # res_dict = json.loads(res)
         return JSONResponse(    
-            {"golfList":res_dict},
+            {"golfList":res},
             status_code=status.HTTP_200_OK
         )
         print(f"controllers post_controllers_golfList end")
-        
     except Exception:
         return JSONResponse(
             {"message":"테스트 실패"},

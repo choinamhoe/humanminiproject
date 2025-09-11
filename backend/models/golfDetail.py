@@ -1,5 +1,6 @@
 from db.pool import engine
 from sqlalchemy import create_engine, text
+import numpy as np
 import pandas as pd
 import json
 
@@ -59,6 +60,8 @@ def post_model_golfKmaInfo():
         #print("read_sql 읽기 전")
         # 1. 데이터를 DataFrame으로 불러옵니다 (이 부분은 동일).
         df = pd.read_sql(text(query_kmaInfo), conn)
+        df = df.replace({np.nan: None})
+        #df = df.iloc[:50000]
         #print(df.iloc[:1,:])
         #print(f"post_model_golfKmaInfo 위도 : {df.loc[:,"Latitude"]}")
     if len(df) > 0:
