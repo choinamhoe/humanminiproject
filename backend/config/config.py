@@ -9,7 +9,7 @@ config = {
     "DB":{
         "USER_ID":"root",
         "PASSWORD":"15932!miniprojectdb",
-        "HOST":"192.168.0.41",
+        "HOST":"localhost",
         "PORT":"30000",
         "DATABASE_NAME":"miniproject"
     }

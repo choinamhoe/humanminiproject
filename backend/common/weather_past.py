@@ -7,31 +7,34 @@ from dotenv import load_dotenv
 load_dotenv() 
 import datetime
 
-key = os.getenv("API_KEY", "")
+def past_location():
+    print("past_location start")
+    key = os.getenv("API_KEY", "")
+    BASE_URL = "https://apihub.kma.go.kr/api/typ01/url"
+    SUB_URL ="kma_sfctm3.php"
+    #st_dt = "2015-12-11 01:00"
+    #ed_dt = "2015-12-11 02:00"
+    now_time = datetime.datetime.now().replace(
+        minute=0, second=0, microsecond=0)
+    ed_dt = now_time 
+    st_dt = now_time - pd.to_timedelta(6, unit='h')
+    st_dt=pd.to_datetime(st_dt).strftime("%Y%m%d%H%M")
+    ed_dt=pd.to_datetime(ed_dt).strftime("%Y%m%d%H%M")
+    
+    url = f"{BASE_URL}/{SUB_URL}?tm1={st_dt}&tm2={ed_dt}&help=1&authKey={key}"
+    print(f"past_location start before url : {url}")
 
-BASE_URL = "https://apihub.kma.go.kr/api/typ01/url"
-SUB_URL ="kma_sfctm3.php"
-#st_dt = "2015-12-11 01:00"
-#ed_dt = "2015-12-11 02:00"
-now_time = datetime.datetime.now().replace(
-    minute=0, second=0, microsecond=0)
-ed_dt = now_time 
-st_dt = now_time - pd.to_timedelta(6, unit='h')
+    response = requests.get(url)
+    print(f"past_location start after response : {response}, code : {response.status_code}")
 
-st_dt=pd.to_datetime(st_dt).strftime("%Y%m%d%H%M")
-ed_dt=pd.to_datetime(ed_dt).strftime("%Y%m%d%H%M")
-
-
-url = f"{BASE_URL}/{SUB_URL}?tm1={st_dt}&tm2={ed_dt}&help=1&authKey={key}"
-response = requests.get(url)
-
-source = response.text.split("\n")
-source = [line.split() for line in source]
-hour_df=pd.DataFrame(source[54:-2],columns=[i[2] for i in source[4:50]])
-
-
-weather_past_test = f"weather_obs_past_6h_{now_time.strftime('%Y%m%dT%H%M')}.csv"
-hour_df.to_csv(weather_past_test, index=False)
+    source = response.text.split("\n")
+    source = [line.split() for line in source]
+    print(f"past_location start before source : {source}")
+    hour_df=pd.DataFrame(source[54:-2],columns=[i[2] for i in source[4:50]])
+    print(f"past_location 변환 hour_df : {hour_df}")
+    #weather_past_test = f"weather_obs_past_6h_{now_time.strftime('%Y%m%dT%H%M')}.csv"
+    #hour_df.to_csv(weather_past_test, index=False)
+    return hour_df
 
 
 # 아래 변수는 엑셀로도 공유 toal: 46

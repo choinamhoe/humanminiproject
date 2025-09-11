@@ -12,6 +12,7 @@ def idw_df(origin_df,target_param_df,columnName):
     gdf["x"] = gdf_proj.geometry.x
     gdf["y"] = gdf_proj.geometry.y
     gdf = gdf.dropna(ignore_index=True)
+    print(gdf.isna().sum())
     print(f" target_param_df 정보 결측값 제거 : {gdf}")
     print(f" origin_df 위치(위도,경도) : {origin_df.iloc[:,:]}")
     
@@ -34,7 +35,8 @@ def idw_df(origin_df,target_param_df,columnName):
 
     coords = gdf[["x", "y"]].values
     print(f" idw태우기 전  coords : {coords[:, 0]}")
-    values = target_param_df.loc[:,columnName].values
+    values = gdf.loc[:,columnName].values
+    
     print(f" idw태우기 전  values : {values}")
     print(f" idw태우기 전  target_df[x] : {target_df["x"]}")
     print(f" idw태우기 전  target_df[y] : {target_df["y"]}")
@@ -59,5 +61,6 @@ def idw_interpolation(x, y, coords, values, power=2):
     weights = 1 / distances**power
     print(f"idw_interpolation weights : {weights}")
     result = np.sum(weights * values) / np.sum(weights)
+
     print(f"idw_interpolation end 결과 : {result}")
     return result
