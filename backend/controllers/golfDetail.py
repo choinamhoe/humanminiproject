@@ -11,7 +11,7 @@ async def post_controllers_golfDetail(request: GolfDetailRequest):
     print("controllers post_controllers_golfDetail start")
     try:
         res = post_services_golfDetail(request.id)
-        print(type(res),len(res),res["golfCurrentWeather"])
+        print(type(res),len(res))
 
         #print(f"controllers post_services_golfDetail end ")
         return JSONResponse(    

@@ -15,6 +15,7 @@ SELECT id
      , Longitude
 FROM miniproject.glofInfo
 """
+
 query_lastWeatherInfo = """
 SELECT id
      , STN
@@ -32,7 +33,7 @@ WHERE STR_TO_DATE(TM, '%Y-%m-%d %H:%i:%s')
     = DATE_FORMAT(CONVERT_TZ(NOW(), '+00:00', '+09:00'), '%Y-%m-%d %H:00:00')
 """
 
-def post_model_golfList():
+def post_model_golfTest():
     print("models post_model_golfList start")
     with engine.connect() as conn:
         # print("models post_model_golfList 쿼리 호출 전")
@@ -59,3 +60,4 @@ def post_model_lastWeatherInfo():
             return df
     else:
         return {"message": "데이터 없음"}
+

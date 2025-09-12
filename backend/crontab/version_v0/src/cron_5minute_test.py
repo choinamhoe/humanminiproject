@@ -17,9 +17,11 @@ try:
     user_id = "root"
     password = "15932!miniprojectdb"
     host = "host.docker.internal"
+    #host = "localhost"
     port = 30000
     database_name = "miniproject"
     read_df = "/app/META_관측지점정보_20250912112452.csv"
+    #read_df = "E:/최남회/250909_미니프로젝트/backend/crontab/version_v0/src/META_관측지점정보_20250912112452.csv"
 
     db_info = f"mysql+pymysql://{user_id}:{password}@{host}:{port}/{database_name}"
     engine = create_engine(

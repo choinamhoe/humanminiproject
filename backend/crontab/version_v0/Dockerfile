@@ -14,7 +14,9 @@ RUN chmod 0644 /etc/cron.d/crontab
 # crontab 실행
 RUN crontab /etc/cron.d/crontab
 
+RUN /usr/local/bin/pip install numpy pandas geopandas dotenv  shapely  sqlalchemy requests pymysql
 # 디렉토리 생성
 RUN mkdir -p /var/log/cron
+
 # cron 실행 (foreground)
 CMD ["cron","-f"]

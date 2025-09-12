@@ -4,7 +4,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from config.config import config, cors_config
-from routes.golfInfo import router
+from routes.golfRouter import router
 
 app = FastAPI()
 app.add_middleware(
