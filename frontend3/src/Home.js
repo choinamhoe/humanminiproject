@@ -1,4 +1,3 @@
-// src/Home.js
 import React from "react";
 import { useNavigate } from "react-router-dom";
 
@@ -6,22 +5,39 @@ const Home = () => {
   const navigate = useNavigate();
 
   const handleClick = () => {
-    navigate("/map"); // ✅ mapview 페이지로 이동
+    navigate("/map");
   };
 
   return (
     <div
       style={{
         height: "100vh",
-        display: "flex",
-        justifyContent: "center",
-        alignItems: "center",
+        width: "100vw",
+        position: "relative",
         cursor: "pointer",
-        backgroundColor: "#f5f5f5",
+        backgroundImage:
+          "url('/runningchild-UmKbUNzzphE-unsplash%20%281%29.jpg')", // ✅ 배경 이미지
+        backgroundSize: "cover",
+        backgroundPosition: "center",
+        backgroundRepeat: "no-repeat",
       }}
-      onClick={handleClick} // ✅ 아무데나 클릭하면 이동
+      onClick={handleClick}
     >
-      <h1>홈 화면 (클릭하면 지도 보기)</h1>
+      {/* ✅ 왼쪽 상단 로고 */}
+      <img
+        src="/logogo.png" // ✅ 최신 로고 파일
+        alt="Logo"
+        style={{
+          position: "absolute",
+          top: 0,
+          left: 20,
+          width: 235,
+          height: "auto",
+          objectFit: "contain",
+          userSelect: "none",
+          pointerEvents: "none",
+        }}
+      />
     </div>
   );
 };

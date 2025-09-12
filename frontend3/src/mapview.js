@@ -11,10 +11,9 @@ const MapView = () => {
   const [filteredLocations, setFilteredLocations] = useState([]);
   const [selectedRegion, setSelectedRegion] = useState(null);
   const [mapInstance, setMapInstance] = useState(null);
-  const [regionWeather, setRegionWeather] = useState({}); // 지역별 비 여부 상태 (ex: { 서울특별시: true, 부산광역시: false })
   const mapRef = useRef();
 
-  // GeoJSON 불러오기
+  // ✅ GeoJSON 불러오기
   useEffect(() => {
     fetch(process.env.PUBLIC_URL + "/ctprvn.geojson")
       .then((res) => res.json())
@@ -22,31 +21,7 @@ const MapView = () => {
       .catch((err) => console.error("GeoJSON 오류:", err));
   }, []);
 
-  // 예시로 지역별 비 여부 데이터 하드코딩 (실제는 API 호출 등으로 대체)
-  useEffect(() => {
-    const exampleWeatherData = {
-      서울특별시: true,
-      부산광역시: false,
-      대구광역시: false,
-      인천광역시: true,
-      광주광역시: true,
-      대전광역시: false,
-      울산광역시: false,
-      세종특별자치시: false,
-      경기도: true,
-      강원특별자치도: false,
-      충청북도: false,
-      충청남도: false,
-      전라북도: true,
-      전라남도: false,
-      경상북도: true,
-      경상남도: false,
-      제주특별자치도: true,
-    };
-    setRegionWeather(exampleWeatherData);
-  }, []);
-
-  // 지역명 보정
+  // ✅ 지역명 보정
   const regionMapping = {
     충북: "충청북도",
     충남: "충청남도",
@@ -54,64 +29,36 @@ const MapView = () => {
     전남: "전라남도",
     경북: "경상북도",
     경남: "경상남도",
-    강원: "강원특별자치도",
   };
 
-  // 기본 스타일 - 비 오는지 여부에 따라 색상 달라짐
-  const getRegionStyle = (feature) => {
-    const regionName = feature.properties?.CTP_KOR_NM;
-    const isRaining = regionWeather[regionName];
-
-    if (selectedRegion === regionName) {
-      return {
-        weight: 2,
-        color: "#ffffff",
-        fillColor: "#ffffff",
-        fillOpacity: 0.4,
-      };
-    }
-
-    if (isRaining === true) {
-      // 비 오는 지역 - 파란색
-      return {
-        color: "#204172ff", // 테두리 색상
-        weight: 2,
-        fillColor: "#a6d9f7",
-        fillOpacity: 0.6,
-      };
-    } else if (isRaining === false) {
-      // 비 안 오는 지역 - 회색
-      return {
-        color: "#999999",
-        weight: 2,
-        fillColor: "#e0e0e0",
-        fillOpacity: 0.4,
-      };
-    } else {
-      // 정보 없는 지역 기본 스타일
-      return {
-        color: "#204172ff",
-        weight: 2,
-        fillColor: "#cccccc",
-        fillOpacity: 0.3,
-      };
-    }
+  // GeoJSON 기본 스타일
+  const geoJsonStyle = {
+    color: "#204172ff",
+    weight: 2,
+    fillColor: "#204172ff",
+    fillOpacity: 0.2,
   };
 
-  // 마커 아이콘
+  // 하이라이트 스타일
+  const highlightStyle = {
+    weight: 2,
+    color: "#ffffff",
+    fillColor: "#ffffff",
+    fillOpacity: 0.4,
+  };
+
+  // 🔴 마커 아이콘
   const flagIcon = new L.Icon({
-    iconUrl: process.env.PUBLIC_URL + "/red.png",
+    iconUrl: process.env.PUBLIC_URL + "/red.png", // 반드시 public/red.png 확인!
     iconSize: [30, 30],
     iconAnchor: [15, 30],
     popupAnchor: [0, -28],
   });
 
-  // 초기화 버튼
+  // ✅ 초기화 버튼
   const handleReset = () => {
     if (mapInstance) {
       mapInstance.setView([36.5, 127.5], 7);
-      setSelectedRegion(null);
-      setFilteredLocations([]);
     }
   };
 
@@ -136,7 +83,7 @@ const MapView = () => {
           attribution="&copy; OpenStreetMap contributors"
         />
 
-        {/* 골프장 마커 */}
+        {/* 🔴 지역 클릭 후 마커 표시 */}
         {filteredLocations.map((loc, idx) => (
           <Marker
             key={idx}
@@ -155,26 +102,25 @@ const MapView = () => {
           </Marker>
         ))}
 
-        {/* GeoJSON */}
+        {/* GeoJSON 지역 경계 */}
         {geoData && (
           <GeoJSON
             data={geoData}
-            style={getRegionStyle}
+            style={(feature) =>
+              selectedRegion === feature.properties?.CTP_KOR_NM
+                ? highlightStyle
+                : geoJsonStyle
+            }
             onEachFeature={(feature, layer) => {
               layer.on({
                 mouseover: (e) => {
                   if (selectedRegion !== feature.properties?.CTP_KOR_NM) {
-                    e.target.setStyle({
-                      weight: 2,
-                      color: "#ffffff",
-                      fillColor: "#ffffff",
-                      fillOpacity: 0.4,
-                    });
+                    e.target.setStyle(highlightStyle);
                   }
                 },
                 mouseout: (e) => {
                   if (selectedRegion !== feature.properties?.CTP_KOR_NM) {
-                    e.target.setStyle(getRegionStyle(feature));
+                    e.target.setStyle(geoJsonStyle);
                   }
                 },
                 click: async () => {
@@ -187,6 +133,7 @@ const MapView = () => {
                   console.log("클릭된 지역:", areaName);
 
                   try {
+                    // ✅ 서버에서 데이터 가져오기
                     const res = await axios.post(
                       "http://192.168.0.38:8000/detail",
                       {}
@@ -246,7 +193,7 @@ const MapView = () => {
         )}
       </MapContainer>
 
-      {/* 초기화 버튼 */}
+      {/* 🔘 초기화 버튼 */}
       <div
         style={{
           position: "absolute",
