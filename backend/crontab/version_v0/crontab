@@ -21,6 +21,8 @@
 # For more information see the manual pages of crontab(5) and cron(8)
 #
 # m h  dom mon dow   command
+#* * * * * /usr/local/bin/python /app/cron_5minute_test.py >> /app/log_5minute_test.txt
+# * * * * * /usr/local/bin/python /app/cron_1hour.py >> /app/log_1hour.txt
 0 */1 * * * /usr/local/bin/python /app/cron_1hour.py >> /app/log_1hour.txt
 #10,40 * * * * /usr/local/bin/python /app/volume/main.py >> /var/log/cron/cron_log.log 2>&1
 

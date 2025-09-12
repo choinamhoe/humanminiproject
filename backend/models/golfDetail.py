@@ -9,6 +9,9 @@ SELECT id
      , `지역` as area 
      , `업소명` as storeName
      , `소재지` as addr
+     , `총면적제곱미터` as totalAreaSquareMeters
+     , `홀수홀` as addHole
+     , `세부종류` as detailedType
      , Latitude
      , Longitude
 FROM miniproject.glofInfo

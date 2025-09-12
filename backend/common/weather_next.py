@@ -44,7 +44,16 @@ def current_location(lon,lat):
     pred_df["datetime"] = pd.to_datetime(pred_df["fcstDate"]+pred_df["fcstTime"])
     # print(f"find_closest_location 999999999")
     
+
+
     pred_df = pred_df.pivot(index=["datetime"], columns="category", values="fcstValue").reset_index()
+    
+    # id 컬럼 추가 (1부터 시작)
+    pred_df["id"] = range(1, len(pred_df)+1)
+
+    # id를 제일 앞으로 이동
+    cols = ["id"] + [col for col in pred_df.columns if col != "id"]
+    pred_df = pred_df[cols]
     # print(f"find_closest_location 00000000000")
     # weather_future_file = f"weather_forecast_next_6h_{now_time.strftime('%Y%m%dT%H%M')}.csv"
     # print(f"find_closest_location aaaaaaaaaaaaaa")

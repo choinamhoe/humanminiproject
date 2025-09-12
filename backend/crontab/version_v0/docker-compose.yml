@@ -2,8 +2,13 @@ version: "3"
 
 services:
   myservice:
+    build:
+      context: .
+      dockerfile: Dockerfile
     image: cron_test:latest
     container_name: weathercron
     restart: always
     volumes:
-      - E:/최남회/파이썬개발에대한파일모음/weather_cron-main/version_v0/src:/app
+      - E:/최남회/250909_미니프로젝트/backend/crontab/version_v0/src:/app
+    extra_hosts:
+      - "host.docker.internal:host-gateway"

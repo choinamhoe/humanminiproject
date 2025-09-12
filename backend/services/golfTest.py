@@ -1,14 +1,14 @@
-from models.golfInfo import post_model_golfList,post_model_lastWeatherInfo
+from models.golfTest import post_model_golfTest,post_model_lastWeatherInfo
 from common.weather_next import current_location
 from common.commonDf import dftoDict
 from common.idw_interpolation import idw_df
 import pandas as pd
 import geopandas as gpd
 
-def post_services_golfList():
+def post_services_golfTest():
    print("services post_services_golfList start")
    res = dict()
-   golfInfo = post_model_golfList()
+   golfInfo = post_model_golfTest()
    # print(f"post_model_golfList after 위도 : {golfInfo.loc[:,"Longitude"].values}")
    # print(f"post_model_golfList after 경도 : {golfInfo.loc[:,"Latitude"].values}")
    #print(f"post_model_golfList after 건수 : {len(golfInfo)}")
