@@ -8,9 +8,10 @@ import "./mapview.css";
 
 const MapView = () => {
   const [geoData, setGeoData] = useState(null);
-  const [filteredLocations, setFilteredLocations] = useState([]);
+  const [filteredLocations, setFilteredLocations] = useState([]); // 현재 지도에 표시할 마커들
   const [selectedRegion, setSelectedRegion] = useState(null);
   const [mapInstance, setMapInstance] = useState(null);
+  const [areaIds, setAreaIds] = useState([]); // 전체 골프장 데이터 저장
   const mapRef = useRef();
 
   // ✅ GeoJSON 불러오기
@@ -21,35 +22,9 @@ const MapView = () => {
       .catch((err) => console.error("GeoJSON 오류:", err));
   }, []);
 
-  // ✅ 지역명 보정
-  const regionMapping = {
-    충북: "충청북도",
-    충남: "충청남도",
-    전북: "전라북도",
-    전남: "전라남도",
-    경북: "경상북도",
-    경남: "경상남도",
-  };
-
-  // GeoJSON 기본 스타일
-  const geoJsonStyle = {
-    color: "#204172ff",
-    weight: 2,
-    fillColor: "#204172ff",
-    fillOpacity: 0.2,
-  };
-
-  // 하이라이트 스타일
-  const highlightStyle = {
-    weight: 2,
-    color: "#ffffff",
-    fillColor: "#ffffff",
-    fillOpacity: 0.4,
-  };
-
   // 🔴 마커 아이콘
   const flagIcon = new L.Icon({
-    iconUrl: process.env.PUBLIC_URL + "/red.png", // 반드시 public/red.png 확인!
+    iconUrl: process.env.PUBLIC_URL + "/red.png", // 반드시 public/red.png 있어야 함
     iconSize: [30, 30],
     iconAnchor: [15, 30],
     popupAnchor: [0, -28],
@@ -58,9 +33,64 @@ const MapView = () => {
   // ✅ 초기화 버튼
   const handleReset = () => {
     if (mapInstance) {
-      mapInstance.setView([36.5, 127.5], 7);
+      mapInstance.setView([36.5, 127.5], 7); // 전국 뷰로 리셋
+      setSelectedRegion(null);
+      setFilteredLocations([]); // 🔴 마커 초기화
     }
   };
+
+  // ✅ 지역명 보정 함수
+  const normalizeArea = (name) => {
+    if (!name) return "";
+
+    return name
+      .replace("세종특별자치시", "세종") // ✅ 세종 처리
+      .replace("특별자치도", "")
+      .replace("광역시", "")
+      .replace("특별시", "")
+      .replace("자치시", "")
+      .replace("충청북", "충북")
+      .replace("충청남", "충남")
+      .replace("전라북", "전북")
+      .replace("전라남", "전남")
+      .replace("경상북", "경북")
+      .replace("경상남", "경남")
+      .replace("도", "")
+      .replace("시", "")
+      .trim();
+  };
+
+  // ✅ 전체 데이터 불러오기 → areaIds에 저장만 함
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const res = await axios.post("http://192.168.0.38:8000");
+        if (res?.data?.golfList?.golfInfo) {
+          const data = res.data.golfList.golfInfo;
+          const parsed = data
+            .map((item) => {
+              const lat = parseFloat(item.Latitude);
+              const lng = parseFloat(item.Longitude);
+
+              return {
+                id: item.id,
+                name: item.storeName,
+                latitude: lat,
+                longitude: lng,
+                address: item.addr,
+                area: item.area,
+              };
+            })
+            .filter((loc) => !isNaN(loc.latitude) && !isNaN(loc.longitude));
+
+          setAreaIds(parsed); // 🔴 전체 데이터만 저장
+        }
+      } catch (e) {
+        console.log("error", e);
+      }
+    };
+    fetchData();
+  }, []);
 
   return (
     <div className="map-wrapper" style={{ position: "relative" }}>
@@ -83,12 +113,26 @@ const MapView = () => {
           attribution="&copy; OpenStreetMap contributors"
         />
 
-        {/* 🔴 지역 클릭 후 마커 표시 */}
+        {/* 🔴 현재 선택된 지역 마커만 표시 */}
         {filteredLocations.map((loc, idx) => (
           <Marker
             key={idx}
             position={[loc.latitude, loc.longitude]}
             icon={flagIcon}
+            eventHandlers={{
+              click: async () => {
+                try {
+                  console.log("Marker clicked!", loc);
+                  const res = await axios.post(
+                    "http://192.168.0.38:8000/detail",
+                    { id: loc.id }
+                  );
+                  console.log("응답:", res.data);
+                } catch (e) {
+                  console.error("에러 발생:", e);
+                }
+              },
+            }}
           >
             <Popup>
               <div className="popup-card">
@@ -108,70 +152,34 @@ const MapView = () => {
             data={geoData}
             style={(feature) =>
               selectedRegion === feature.properties?.CTP_KOR_NM
-                ? highlightStyle
-                : geoJsonStyle
+                ? {
+                    weight: 2,
+                    color: "#ffffff",
+                    fillColor: "#ffffff",
+                    fillOpacity: 0.4,
+                  }
+                : {
+                    color: "#204172ff",
+                    weight: 2,
+                    fillColor: "#204172ff",
+                    fillOpacity: 0.2,
+                  }
             }
             onEachFeature={(feature, layer) => {
               layer.on({
-                mouseover: (e) => {
-                  if (selectedRegion !== feature.properties?.CTP_KOR_NM) {
-                    e.target.setStyle(highlightStyle);
-                  }
-                },
-                mouseout: (e) => {
-                  if (selectedRegion !== feature.properties?.CTP_KOR_NM) {
-                    e.target.setStyle(geoJsonStyle);
-                  }
-                },
                 click: async () => {
-                  const areaName =
-                    feature.properties?.CTP_KOR_NM ||
-                    feature.properties?.name ||
-                    "선택 지역";
-
-                  setSelectedRegion(areaName);
-                  console.log("클릭된 지역:", areaName);
+                  const rawArea = feature.properties?.CTP_KOR_NM;
+                  setSelectedRegion(rawArea);
+                  console.log("🟢 클릭된 지역:", rawArea);
 
                   try {
-                    // ✅ 서버에서 데이터 가져오기
-                    const res = await axios.post(
-                      "http://192.168.0.38:8000/detail",
-                      {}
+                    const parsed = areaIds.filter(
+                      (item) =>
+                        item.area &&
+                        normalizeArea(item.area) === normalizeArea(rawArea)
                     );
-                    console.log("API 응답:", res.data);
 
-                    const golfInfo = res.data.golfList?.golfInfo || [];
-
-                    const parsed = golfInfo
-                      .map((item) => {
-                        const lat = parseFloat(item.Latitude);
-                        const lng = parseFloat(item.Longitude);
-
-                        console.log(
-                          "좌표:",
-                          item.storeName,
-                          lat,
-                          lng,
-                          item.area
-                        );
-
-                        return {
-                          name: item.storeName,
-                          latitude: lat,
-                          longitude: lng,
-                          address: item.addr,
-                          area: regionMapping[item.area] || item.area,
-                        };
-                      })
-                      .filter(
-                        (loc) =>
-                          !isNaN(loc.latitude) &&
-                          !isNaN(loc.longitude) &&
-                          (loc.area.includes(areaName) ||
-                            areaName.includes(loc.area))
-                      );
-
-                    console.log("필터링된 골프장:", parsed);
+                    console.log("📍 선택된 지역 마커 좌표:", parsed);
                     setFilteredLocations(parsed);
 
                     if (mapRef.current && parsed.length > 0) {
@@ -182,9 +190,9 @@ const MapView = () => {
                       mapRef.current.fitBounds(bounds);
                     }
 
-                    layer.bindPopup(`<b>${areaName}</b>`).openPopup();
+                    layer.bindPopup(`<b>${rawArea}</b>`).openPopup();
                   } catch (err) {
-                    console.error("지역별 API 요청 오류:", err);
+                    console.error("❌ 지역별 필터링 오류:", err);
                   }
                 },
               });
