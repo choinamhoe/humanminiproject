@@ -2,6 +2,7 @@
 import axios from "axios";
 import React, { useEffect, useState, useRef } from "react";
 import { MapContainer, TileLayer, Marker, Popup, GeoJSON } from "react-leaflet";
+import { useNavigate } from "react-router-dom"; // ✅ 추가
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import "./mapview.css";
@@ -13,6 +14,8 @@ const MapView = () => {
   const [mapInstance, setMapInstance] = useState(null);
   const [areaIds, setAreaIds] = useState([]); // 전체 골프장 데이터 저장
   const mapRef = useRef();
+
+  const navigate = useNavigate(); // ✅ 선언
 
   // ✅ GeoJSON 불러오기
   useEffect(() => {
@@ -79,6 +82,7 @@ const MapView = () => {
                 longitude: lng,
                 address: item.addr,
                 area: item.area,
+                imageUrl: item.imageUrl, // ✅ 서버에 있으면 매핑
               };
             })
             .filter((loc) => !isNaN(loc.latitude) && !isNaN(loc.longitude));
@@ -119,20 +123,6 @@ const MapView = () => {
             key={idx}
             position={[loc.latitude, loc.longitude]}
             icon={flagIcon}
-            eventHandlers={{
-              click: async () => {
-                try {
-                  console.log("Marker clicked!", loc);
-                  const res = await axios.post(
-                    "http://192.168.0.38:8000/detail",
-                    { id: loc.id }
-                  );
-                  console.log("응답:", res.data);
-                } catch (e) {
-                  console.error("에러 발생:", e);
-                }
-              },
-            }}
           >
             <Popup>
               <div className="popup-card">
@@ -141,6 +131,14 @@ const MapView = () => {
                 <small>
                   위도: {loc.latitude}, 경도: {loc.longitude}
                 </small>
+
+                {/* ✅ 이미지 추가 + 클릭 시 Detail 이동 */}
+                <img
+                  src={loc.imageUrl || process.env.PUBLIC_URL + "/샘플.jpg"}
+                  alt={loc.name}
+                  style={{ width: "100%", marginTop: "8px", cursor: "pointer" }}
+                  onClick={() => navigate(`/detail?id=${loc.id}`)}
+                />
               </div>
             </Popup>
           </Marker>
