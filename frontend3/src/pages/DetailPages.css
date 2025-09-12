@@ -1,0 +1,100 @@
+/* src/pages/DetailPages.css */
+
+.detail-container {
+  position: relative;
+  padding: 20px;
+  font-family: sans-serif;
+  font-size: 14px;
+  line-height: 1.5;
+
+  /* ✅ 배경 이미지 */
+  background-image: url("/public/images/img1_golf.png");
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+}
+
+/* ✅ 반투명 흰색 오버레이 (가독성 확보용) */
+.detail-container::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(255, 255, 255, 0.7); /* ✅ 투명도 30% */
+  z-index: 0;
+}
+
+/* ✅ 컨텐츠는 항상 배경 위로 */
+.detail-container > * {
+  position: relative;
+  z-index: 1;
+}
+
+/* ✅ 닫기 버튼 */
+.detail-close-btn {
+  position: absolute;
+  top: 15px;
+  right: 15px;
+  display: block;
+  background: transparent;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  font-size: 14px;
+  cursor: pointer;
+  padding: 10px 16px;
+  line-height: 1.2;
+  transition: all 0.2s;
+  z-index: 10;
+}
+
+.detail-close-btn:hover {
+  background: rgba(0, 0, 0, 0.1);
+  border-color: #666;
+}
+
+.detail-title {
+  margin-top: 0;
+  font-size: 18px;
+  font-weight: bold;
+}
+
+.detail-section {
+  margin-top: 20px;
+}
+
+.detail-section h3 {
+  font-size: 16px;
+  margin-bottom: 8px;
+}
+
+.detail-item {
+  margin: 4px 0;
+}
+
+/* ✅ 추천 메시지 박스 */
+.detail-recommend {
+  background: #f9f9f9;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  padding: 12px;
+  font-style: italic;
+  font-size: 13px;
+}
+
+/* ✅ 날씨 예보 그래프 영역 흰 배경 */
+.detail-weather-graph {
+  background: #fff; /* 흰색 배경 */
+  border-radius: 8px; /* 살짝 둥글게 */
+  padding: 10px; /* 그래프 안쪽 여백 */
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1); /* 은은한 그림자 */
+}
+
+.detail-title {
+  margin-top: 0;
+  font-size: 18px;
+  font-weight: bold;
+  padding-bottom: 8px; /* 선과의 간격 */
+  border-bottom: 1px solid #ccc; /* 구분선 */
+}
