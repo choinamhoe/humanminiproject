@@ -2,17 +2,17 @@ import { useEffect, useState } from "react";
 import axios from "axios";
 
 function RecommendMsg({ weather }) {
-  const [chat, setChat] = useState("추천 메시지를 불러오는중...");
+  const [chat, setChat] = useState("추천 메시지를 불러오는 중...");
 
   useEffect(() => {
     if (weather) {
       axios
-        .post("http://127.0.0.1:8000/recommend", { weather })
+        .post("http://localhost:8000/recommend", { weather })
         .then((res) => {
           setChat(res.data.message);
         })
         .catch((err) => {
-          console.error("API 요청 실패:", err);
+          console.error(err);
           setChat("메시지를 불러오지 못했습니다.");
         });
     }
