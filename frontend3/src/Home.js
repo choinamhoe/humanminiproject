@@ -1,6 +1,11 @@
+<<<<<<< HEAD
+import React from "react";
+import { useNavigate } from "react-router-dom";
+=======
 // src/Home.js
 import React, { useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
+>>>>>>> main
 
 const Home = () => {
   const navigate = useNavigate();
@@ -21,10 +26,34 @@ const Home = () => {
     <div
       style={{
         height: "100vh",
-        display: "flex",
-        justifyContent: "center",
-        alignItems: "center",
+        width: "100vw",
+        position: "relative",
         cursor: "pointer",
+<<<<<<< HEAD
+        backgroundImage:
+          "url('/runningchild-UmKbUNzzphE-unsplash%20%281%29.jpg')", // ✅ 배경 이미지
+        backgroundSize: "cover",
+        backgroundPosition: "center",
+        backgroundRepeat: "no-repeat",
+      }}
+      onClick={handleClick}
+    >
+      {/* ✅ 왼쪽 상단 로고 */}
+      <img
+        src="/logogo.png" // ✅ 최신 로고 파일
+        alt="Logo"
+        style={{
+          position: "absolute",
+          top: 0,
+          left: 20,
+          width: 235,
+          height: "auto",
+          objectFit: "contain",
+          userSelect: "none",
+          pointerEvents: "none",
+        }}
+      />
+=======
         backgroundImage: `url(${process.env.PUBLIC_URL}/firstpage.avif)`,
         backgroundSize: "cover",
         backgroundPosition: "center",
@@ -47,6 +76,7 @@ const Home = () => {
       <h1 style={{ color: "white", textShadow: "2px 2px 4px rgba(0,0,0,0.7)" }}>
         홈 화면 (클릭하면 지도 보기)
       </h1>
+>>>>>>> main
     </div>
   );
 };
