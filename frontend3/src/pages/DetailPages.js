@@ -1,63 +1,68 @@
 // src/pages/DetailPages.jsx
-import { useNavigate } from "react-router-dom";
+import { useEffect, useState } from "react";
+import { useNavigate, useParams } from "react-router-dom";
+import WeatherNow from "../components/WeatherNow";
+import WeatherChart from "../components/WeatherChart";
+import RecommendMsg from "../components/RecommendMsg";
+import "./DetailPages.css";
 
 function DetailPages() {
   const navigate = useNavigate();
+  const { id } = useParams();
+
+  const [golfInfo, setGolfInfo] = useState(null);
+  const [weather, setWeather] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (!id) return;
+
+    setLoading(true);
+    fetch("http://192.168.0.38:8000/detail", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id }),
+    })
+      .then((res) => res.json())
+      .then((data) => {
+        setGolfInfo(data.golfDetail.golfInfo[0]);
+        setWeather(data.golfDetail.golfCurrentWeather);
+      })
+      .catch((err) => console.error(err))
+      .finally(() => setLoading(false));
+  }, [id]);
+
+  if (loading) return <p className="detail-container">로딩 중...</p>;
 
   return (
-    <div style={{ padding: "20px", fontFamily: "sans-serif" }}>
-      <button
-        onClick={() => navigate("/map")}
-        style={{
-          float: "right",
-          background: "transparent",
-          border: "none",
-          fontSize: "14px",
-          cursor: "pointer",
-        }}
-      >
+    <div className="detail-container">
+      <button onClick={() => navigate("/map")} className="detail-close-btn">
         닫기 ✕
       </button>
 
-      <h2 style={{ marginTop: 0 }}>골프장 이름(DB) 상황</h2>
+      <h2 className="detail-title">
+        {golfInfo ? golfInfo.storeName : `골프장 ${id}`} 상황
+      </h2>
 
-      {/* 🔽 DB/날씨 데이터 자리 */}
-      <section style={{ marginTop: "20px" }}>
-        <h3>기본 정보</h3>
-        <p>• 골프장 이름: (DB)</p>
-        <p>• 주소: (DB)</p>
-        <p>• 연락처: (DB)</p>
-      </section>
+      {/* 기본 정보 */}
+      {golfInfo && (
+        <section className="detail-section">
+          <h3>기본 정보</h3>
+          <p className="detail-item">• 골프장: {golfInfo.storeName}</p>
+          <p className="detail-item">• 주소: {golfInfo.addr}</p>
+          <p className="detail-item">• 지역: {golfInfo.area}</p>
+          <p className="detail-item">• 구분: {golfInfo.detailedType}</p>
+        </section>
+      )}
 
-      <section style={{ marginTop: "20px" }}>
-        <h3>현재 날씨</h3>
-        <p>🌡 기온: (API)</p>
-        <p>💧 습도: (API)</p>
-        <p>☔ 강수량: (API)</p>
-        <p>💨 풍속: (API)</p>
-        <p>🧭 풍향: (API → WD 값)</p>
-        <p>🌫 시정: (API)</p>
-      </section>
+      {/* 현재 날씨 */}
+      {weather.length > 0 && <WeatherNow weather={weather} />}
 
-      <section style={{ marginTop: "20px" }}>
-        <h3>예보 그래프</h3>
-        <p>앞으로 6시간 강수량/풍속/풍향/시정 그래프</p>
-      </section>
+      {/* 예보 그래프 */}
+      {weather.length > 0 && <WeatherChart weather={weather} />}
 
-      <section style={{ marginTop: "20px" }}>
-        <h3>추천 메시지</h3>
-        <div
-          style={{
-            background: "#f9f9f9",
-            border: "1px solid #ddd",
-            borderRadius: "8px",
-            padding: "12px",
-            fontStyle: "italic",
-          }}
-        >
-          오늘은 바람이 북서풍(약 8m/s)으로 강하게 불고 있어 주의가 필요합니다.
-        </div>
-      </section>
+      {/* 추천 메시지 */}
+      {weather.length > 0 && <RecommendMsg weather={weather} />}
     </div>
   );
 }
