@@ -108,12 +108,12 @@ def post_services_golfDetail(id):
 
 
    #골프장 6시간 후 날씨정보
-   name = 'golfCurrentWeather'
-   timeColumn = "datetime"
-   current_weather[timeColumn] = current_weather[timeColumn].astype(str)
-   golfCurrentWeather = dftoDict(current_weather,name)
-   # print(f"골프장 6시간 후 날씨정보 딕셔너리로 변환 : {golfCurrentWeather}")
-   res.update(golfCurrentWeather)
+   # name = 'golfCurrentWeather'
+   # timeColumn = "datetime"
+   # current_weather[timeColumn] = current_weather[timeColumn].astype(str)
+   # golfCurrentWeather = dftoDict(current_weather,name)
+   # # print(f"골프장 6시간 후 날씨정보 딕셔너리로 변환 : {golfCurrentWeather}")
+   # res.update(golfCurrentWeather)
 
    #골프장 24시간 후 날씨정보
    name = 'golf24HourWeather'
