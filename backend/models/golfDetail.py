@@ -44,21 +44,19 @@ SELECT kma.id
 """
 
 def post_model_golfDetail(id):
-    print(f"models post_model_golfDetail start id : {id}")
+    #print(f"models post_model_golfDetail start id : {id}")
     with engine.connect() as conn:
         #print("read_sql 읽기 전")
         # 1. 데이터를 DataFrame으로 불러옵니다 (이 부분은 동일).
         df = pd.read_sql(text(query_golfDetail), conn, params={"id": id} )
-        print(f"post_model_golfDetail 위도 : {df.loc[:,"Latitude"]}")
-         
-
+        #print(f"post_model_golfDetail 위도 : {df.loc[:,"Latitude"]}")
     if len(df) > 0:
         return df
     else :
         return {"message": "데이터 없음"}
 
 def post_model_golfKmaInfo():
-    print(f"models post_model_golfKmaInfo start ")
+    #print(f"models post_model_golfKmaInfo start ")
     with engine.connect() as conn:
         #print("read_sql 읽기 전")
         # 1. 데이터를 DataFrame으로 불러옵니다 (이 부분은 동일).
