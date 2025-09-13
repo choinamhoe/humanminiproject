@@ -9,6 +9,6 @@ services:
     container_name: weathercron
     restart: always
     volumes:
-      - D:/github/humanminiproject/backend/crontab/version_v0/src:/app
+      - E:/최남회/250909_미니프로젝트/backend/crontab/version_v0/src:/app
     extra_hosts:
       - "host.docker.internal:host-gateway"

@@ -14,6 +14,8 @@ try:
     from sqlalchemy import create_engine, text
     import datetime
     #from db.pool import engine
+    kst = pytz.timezone("Asia/Seoul")
+    print(datetime.datetime.now(kst),f"cron_1hour start")
     user_id = "root"
     password = "15932!miniprojectdb"
     host = "host.docker.internal"
@@ -25,14 +27,6 @@ try:
     engine = create_engine(
         db_info,connect_args={}
         )
-
-    query = """
-        DROP TABLE IF EXISTS latestWeatherInfo;
-    """
-
-    # 1. 테이블 존재 시 삭제
-    with engine.connect() as conn:
-        result = conn.execute(text(query))
 
     # IDW 보간 함수
     def idw_interpolation(
@@ -51,7 +45,7 @@ try:
     BASE_URL = "https://apihub.kma.go.kr/api/typ01/url"
     SUB_URL = "kma_sfctm3.php"
     SUB_LOCATION_URL = "stn_inf.php"
-    kst = pytz.timezone("Asia/Seoul")
+    
 
     st_dt = datetime.datetime.now(kst) - pd.to_timedelta(1, unit="hour")
     st_dt = pd.Timestamp(st_dt).round("H")
@@ -100,6 +94,14 @@ try:
     gdf.columns = gdf.columns.str.replace(r'[()]', '', regex=True)  # 괄호 제거
     gdf.columns = gdf.columns.str.replace(' ', '_')  # 공백 → _
 
+    query = """
+        DROP TABLE IF EXISTS latestWeatherInfo;
+    """
+
+    # 1. 테이블 존재 시 삭제
+    with engine.connect() as conn:
+        result = conn.execute(text(query))
+        
     # DB에 저장 (id는 자동 생성되게, DataFrame엔 없음)
     gdf.to_sql("latestWeatherInfo", con=engine, if_exists="replace", index=False)
 

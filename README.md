@@ -31,3 +31,15 @@ https://www.perplexity.ai/ 링크 같은거 찾아주는 LLM 서비스입니다.
 docker-compose down
 docker-compose build --no-cache
 docker-compose up -d
+
+## 기상청 API키 발급
+
+data.go.kr - 로그인 해야 하는 사이트 - 네이버 로그인(cnh665@naver.com) - 휴대폰 인증 필요
+로그인 하고 기상청 단기예보 조회 서비스 검색 - https://www.data.go.kr/tcs/dss/selectApiDataDetailView.do?publicDataPk=15084084
+활용신청 버튼 클릭
+API키 발급
+현재일자 - 2025-09-13
+만료일자 - 2027-09-13
+일반 인증키 : 3b8dcb53f1ccdd05fb434481223a53ff8fe1a47df3860abbb1a315ddf2637338
+
+# --- 파일/환경 준비 ---
