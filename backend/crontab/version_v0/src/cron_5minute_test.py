@@ -14,14 +14,14 @@ try:
     from sqlalchemy import create_engine, text
     import datetime
     #from db.pool import engine
+    kst = pytz.timezone("Asia/Seoul")
+    print(datetime.datetime.now(kst),f"cron_1hour start")
     user_id = "root"
     password = "15932!miniprojectdb"
     host = "host.docker.internal"
-    #host = "localhost"
     port = 30000
     database_name = "miniproject"
     read_df = "/app/META_관측지점정보_20250912112452.csv"
-    #read_df = "E:/최남회/250909_미니프로젝트/backend/crontab/version_v0/src/META_관측지점정보_20250912112452.csv"
 
     db_info = f"mysql+pymysql://{user_id}:{password}@{host}:{port}/{database_name}"
     engine = create_engine(
@@ -45,7 +45,7 @@ try:
     BASE_URL = "https://apihub.kma.go.kr/api/typ01/url"
     SUB_URL = "kma_sfctm3.php"
     SUB_LOCATION_URL = "stn_inf.php"
-    kst = pytz.timezone("Asia/Seoul")
+    
 
     st_dt = datetime.datetime.now(kst) - pd.to_timedelta(1, unit="hour")
     st_dt = pd.Timestamp(st_dt).round("H")

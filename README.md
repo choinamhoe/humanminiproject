@@ -59,4 +59,38 @@ nssm (Non-Sucking Service Manager) 설치 -https://nssm.cc/download 에서 nssm 
 -확인 방법
 -docker version,docker ps 했을때 컨테이너 실행 안해도 실행되면 정상 작동
 
+# 도커를 작업스케줄러로 등록 방법
+
+-window키 + R
+-taskschd.msc 실행 -오른쪽버튼 + 작업만들기
+
+# 일반탭 :
+
+- 사용자가 로그인할때만 실행체크 + 가장높은 수준의 권한으로 실행 + windows 10
+
+# 트리거탭 :
+
+- 로그온할때로 선택
+
+# 동작탭 :
+
+프로그램시작
+프로그램/스크립트 : "C:\Program Files\Docker\Docker\Docker Desktop.exe"
+시작위치(옵션)(T) : C:\Program Files\Docker\Docker
+
+# 조건탭 :
+
+- 전원쪽에 체크되어 있는거 해제
+
+# 설정탭 :
+
+- 요청시 작업이 실행되도록 허용,요청할 때 실행중인 작업이 끝나지 않으면 강제로 작업 중지만 체크
+
+# 작업표시줄
+
+- 위로 향해있는 버튼 클릭
+- 백그라운드 버튼 중 Docker Desktop running 오른쪽 버튼 선택
+- change settings 버튼 클릭
+- General에서 Open Docker Dashboard when Docker Desktop starts 체크 되어 있는 것을 해제
+
 # --- 파일/환경 준비 ---
