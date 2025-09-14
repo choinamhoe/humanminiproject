@@ -42,4 +42,21 @@ API키 발급
 만료일자 - 2027-09-13
 일반 인증키 : 3b8dcb53f1ccdd05fb434481223a53ff8fe1a47df3860abbb1a315ddf2637338
 
+# docker를 로그오프에도 자동으로 실행되게 하는 방법
+
+nssm (Non-Sucking Service Manager) 설치 -https://nssm.cc/download 에서 nssm 2.24 (2014-08-31) 설치 -자료 폴더에 여기서 받은 nssm 2.24.zip파일 넣어둠 -압축을 푼 후 C:\nssm\nssm.exe 에 64bit폴더에 있는 파일을 옮겨놓음 -보통 도커 설치 경로를 확인 - C:\Program Files\Docker\Docker\Docker Desktop.exe
+
+# 도커 설치 경로 확인 방법
+
+1)시작 메뉴 - 파일 위치 열기 - Docker Desktop 마우스 오른쪽버튼 - 파일 위치 열기 - 파일 경로 확인
+
+-nssm으로 서비스 등록 1)관리자 권한 PowerShell 또는 CMD 실행 후 아래 입력:
+-C:\nssm\nssm.exe install DockerDesktopService 하면 GUI 창이 뜸
+-Application Path: C:\Program Files\Docker\Docker\Docker Desktop.exe
+-Startup directory:C:\Program Files\Docker\Docker -나머지칸은 공백으로 넣고 적용
+2)Win + R → services.msc 입력 → DockerDesktopService 찾아서 -시작 유형(Start type) → Automatic (자동) 으로 변경 -서비스 시작(Start) -자동이 안될 경우 수동에 있는 건도 실행중
+
+-확인 방법
+-docker version,docker ps 했을때 컨테이너 실행 안해도 실행되면 정상 작동
+
 # --- 파일/환경 준비 ---
