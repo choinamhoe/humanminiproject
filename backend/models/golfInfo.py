@@ -27,13 +27,14 @@ WITH ranked AS (
          , HM
          , WS
          , WD
+         , RN
          , `geometry`
          , ROW_NUMBER() OVER (
              PARTITION BY DATE_FORMAT(STR_TO_DATE(TM, '%Y-%m-%d %H:%i:%s'), '%Y-%m-%d %H')
              ORDER BY ABS(TIMESTAMPDIFF(SECOND,
                        STR_TO_DATE(TM, '%Y-%m-%d %H:%i:%s'),
                        DATE_FORMAT(STR_TO_DATE(TM, '%Y-%m-%d %H:%i:%s'), '%Y-%m-%d %H:00:00')))
-         ) AS rn
+         ) AS rn1
     FROM miniproject.latestWeatherInfo
     WHERE STR_TO_DATE(TM, '%Y-%m-%d %H:%i:%s')
           >= DATE_SUB(CONVERT_TZ(NOW(), 'UTC', 'Asia/Seoul'), INTERVAL 24 HOUR)
