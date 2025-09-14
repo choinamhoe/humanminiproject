@@ -26,11 +26,14 @@ def post_services_golfList():
    WS_idw=idw_df(golfInfo,lastWeatherInfo,"WS")
    #print(f"WS_idw after 건수 : {len(WS_idw)}")
    WD_idw=idw_df(golfInfo,lastWeatherInfo,"WD")
+   #print(f"WD_idw after 건수 : {len(WD_idw)}")
+   RN_idw=idw_df(golfInfo,lastWeatherInfo,"RN")
    # print(f"TA_idw : {TA_idw}")
    # print(f"PR_idw : {PR_idw}")
    # print(f"HM_idw : {HM_idw}")
    # print(f"WS_idw : {WS_idw}")
    # print(f"WD_idw : {WD_idw}")
+   # print(f"RN_idw : {RN_idw}")
 
    for i in range(len(golfInfo)):
       golfInfo.loc[i,"TA"] = TA_idw[i]
@@ -38,6 +41,7 @@ def post_services_golfList():
       golfInfo.loc[i,"HM"] = HM_idw[i]
       golfInfo.loc[i,"WS"] = WS_idw[i]
       golfInfo.loc[i,"WD"] = WD_idw[i]
+      golfInfo.loc[i,"RN"] = RN_idw[i]
    print(f"golfInfo : {golfInfo}")
    #골프장 정보 상세
    name = 'golfInfo'

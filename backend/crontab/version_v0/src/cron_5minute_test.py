@@ -4,6 +4,18 @@ Created on Fri Sep 12 09:18:16 2025
 
 @author: human
 """
+# gdf 컬럼 설명:
+# STN      : 관측소 번호 (Station ID, 기상청 고유 식별자)
+# LON      : 관측소 경도 (Longitude, WGS84 좌표계)
+# LAT      : 관측소 위도 (Latitude, WGS84 좌표계)
+# TM       : 관측 시각 (Timestamp, YYYY-MM-DD HH:MM:SS)
+# TA       : 기온 (Temperature, ℃)
+# PR       : 기압 (Pressure, hPa)
+# HM       : 상대습도 (Humidity, %)
+# WS       : 풍속 (Wind Speed, m/s)
+# WD       : 풍향 (Wind Direction, degree, 0~360°)
+# RN       : 강수량 (Precipitation, mm, 해당 시각까지의 누적 혹은 시강수 depending on KMA 제공값)
+# geometry : Shapely Point 객체 (위치 좌표, EPSG:4326)
 try:
     import numpy as np
     import pandas as pd
@@ -71,14 +83,27 @@ try:
     for line in source:
         _source.append(line.split())
     hour_df=pd.DataFrame(_source[54:-2],columns=[i[2] for i in _source[4:50]])
-    hour_df=hour_df[["STN","TM","TA","PR","HM","WS","WD"]].copy()
+    #hour_df=hour_df[["STN","TM","TA","PR","HM","WS","WD"]].copy()
+    # 필요한 컬럼들 추출 (강수량 RN 추가)
+    hour_df = hour_df[["STN","TM","TA","PR","HM","WS","WD","RN"]].copy()
     hour_df["STN"] = hour_df["STN"].astype(int)
     hour_df["TM"] = pd.to_datetime(hour_df["TM"]).dt.strftime("%Y-%m-%d %H:%M:%S")
-    hour_df["TA"] = hour_df["TA"].astype(float)
-    hour_df["PR"] = hour_df["PR"].astype(float)
-    hour_df["HM"] = hour_df["HM"].astype(float)
-    hour_df["WS"] = hour_df["WS"].astype(float)
-    hour_df["WD"] = hour_df["WD"].astype(int)
+    # 숫자형 컬럼 변환 + 소수점 2자리 반올림
+    hour_df["TA"]  = hour_df["TA"].astype(float).round(2)   # 기온 (℃)
+    hour_df["PR"]  = hour_df["PR"].astype(float).round(2)   # 기압 (hPa)
+    hour_df["HM"]  = hour_df["HM"].astype(float).round(2)   # 습도 (%)
+    hour_df["WS"]  = hour_df["WS"].astype(float).round(2)   # 풍속 (m/s)
+    hour_df["WD"]  = hour_df["WD"].astype(float).round(2)   # 풍향 (deg)
+    hour_df["RN"]  = hour_df["RN"].astype(float).round(2)   # 강수량 (mm)
+
+    # ---------------------------
+    # 결측값 처리
+    # RN = -9 → 0.0 으로 치환
+    # TA = -99.9 → NaN (기온은 의미 없는 값이므로)
+    # ---------------------------
+    hour_df["RN"] = hour_df["RN"].replace(-9.0, 0.0)
+    hour_df["TA"] = hour_df["TA"].replace(-99.9, np.nan)   # <- 꼭 숫자로 바꿔야 한다면 0.0으로도 가능
+
     location_df = location_df.loc[:,["지점", "경도","위도"]]
     location_df.columns = ["STN","LON","LAT"]
     location_df["STN"] = location_df["STN"].astype(int)

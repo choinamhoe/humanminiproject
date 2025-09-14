@@ -71,5 +71,5 @@ def idw_interpolation(x, y, coords, values, power=2):
     #print(f"idw_interpolation weights : {weights}")
     result = np.sum(weights * values) / np.sum(weights)
 
-    #print(f"idw_interpolation end 결과 : {result}")
-    return result
+    #print(f"idw_interpolation end 결과 : {round(result, 2)}")
+    return round(result, 2)
