@@ -93,4 +93,41 @@ nssm (Non-Sucking Service Manager) 설치 -https://nssm.cc/download 에서 nssm 
 - change settings 버튼 클릭
 - General에서 Open Docker Dashboard when Docker Desktop starts 체크 되어 있는 것을 해제
 
+# docker 현황 조회
+
+- docker ps
+
+# 컨테이너 중지 (ID 또는 이름 사용)
+
+docker stop 6cd2ec6fdf20
+
+# 컨테이너 삭제
+
+docker rm 6cd2ec6fdf20
+
+# 재시작 정책을 적용하여 컨테이너 새로 실행
+
+docker run -d --name weathercron --restart unless-stopped cron_test:latest
+
+# 화면 보호기 설정
+
+1. 화면보호기 + 잠금 설정
+   윈도우 키 + S → 화면 보호기 검색 → 화면 보호기 변경 클릭
+   (또는 제어판 → 모양 및 개인 설정 → 개인 설정 → 화면 보호기)
+
+화면 보호기 드롭다운에서 원하는 화면보호기 선택 (예: 공백, 3D 텍스트 등).
+
+대기 시간 입력 (예: 10분 → 10분 동안 입력이 없으면 실행).
+
+✅ "다시 시작할 때 로그온 화면 표시" 체크
+→ 화면보호기 해제 시 자동으로 잠금 화면으로 전환됨.
+적용 → 확인 클릭.
+
+# 전원 관리(대기 모드/절전)와 분리
+
+위 방법은 화면보호기 → 잠금이고, PC는 계속 켜져 있습니다.
+
+만약 절전 모드로 들어가면 Docker 컨테이너도 멈추니까,
+👉 설정 → 시스템 → 전원 및 절전에서 절전 모드 안 들어가게 설정해두는 게 좋아요.
+
 # --- 파일/환경 준비 ---
