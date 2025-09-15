@@ -98,12 +98,20 @@ try:
 
     # ---------------------------
     # 결측값 처리
+    # TA(기온 (℃)) = -99.9 → NaN (기온은 의미 없는 값이므로)
+    # PR(# 기압 (hPa)) = -9 → 0.0 으로 치환
+    # HM(습도 (%)) = -9 → NaN (습도는 의미 없는 값이므로)
+    # WS(풍속 (m/s)) = -9 → NaN (풍속은 의미 없는 값이므로)
+    # WD(풍향 (deg)) = -9 → NaN (풍향은 의미 없는 값이므로)
     # RN = -9 → 0.0 으로 치환
-    # TA = -99.9 → NaN (기온은 의미 없는 값이므로)
     # ---------------------------
-    hour_df["RN"] = hour_df["RN"].replace(-9.0, 0.0)
     hour_df["TA"] = hour_df["TA"].replace(-99.9, np.nan)   # <- 꼭 숫자로 바꿔야 한다면 0.0으로도 가능
-
+    hour_df["PR"] = hour_df["PR"].replace(-9.0, 0.0)
+    hour_df["HM"] = hour_df["HM"].replace(-9.0, np.nan)
+    hour_df["WS"] = hour_df["WS"].replace(-9.0, np.nan)
+    hour_df["WD"] = hour_df["WD"].replace(-9.0, np.nan)
+    hour_df["RN"] = hour_df["RN"].replace(-9.0, 0.0)
+    
     location_df = location_df.loc[:,["지점", "경도","위도"]]
     location_df.columns = ["STN","LON","LAT"]
     location_df["STN"] = location_df["STN"].astype(int)
