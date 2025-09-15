@@ -26,6 +26,43 @@ https://www.perplexity.ai/ 링크 같은거 찾아주는 LLM 서비스입니다.
 
 - 조 이름: swing sky
 
+# 골프장 목록 조회시 날씨 정보 설명
+
+STN : 관측소 번호 (Station ID, 기상청 고유 식별자)
+LON : 관측소 경도 (Longitude, WGS84 좌표계)
+LAT : 관측소 위도 (Latitude, WGS84 좌표계)
+TM : 관측 시각 (Timestamp, YYYY-MM-DD HH:MM:SS)
+TA : 기온 (Temperature, ℃)
+PR : 기압 (Pressure, hPa)
+HM : 상대습도 (Humidity, %)
+WS : 풍속 (Wind Speed, m/s)
+WD : 풍향 (Wind Direction, degree, 0~360°)
+RN : 강수량 (Precipitation, mm, 해당 시각까지의 누적 혹은 시강수 depending on KMA 제공값)
+geometry : Shapely Point 객체 (위치 좌표, EPSG:4326)
+
+# 골프장 상세 조회시 날씨 정보 설명
+
+      id                : int   -> 순번 (1부터 시작)
+      time              : datetime -> 예측 시간 (한국 시간, tz=Asia/Seoul)
+      temperature       : float -> 기온(℃)
+      humidity          : float -> 상대습도(%)
+      wind_speed        : float -> 풍속(m/s)
+      visibility        : float -> 가시거리(m), 기본 10000m
+      precip_prob       : float -> 강수 확률(%)
+      fog_index         : float -> 안개 지수(0~100, 높을수록 안개 심함)
+      playable_rule     : int   -> Rule 기반 골프 가능 여부 (0=불가,1=가능)
+      playable_prob_ml  : float -> ML(RandomForest) 예측 확률(0~1)
+      playable_ml       : int   -> ML(RandomForest) 예측 결과 (0=불가,1=가능)
+      playable_prob_dl  : float -> DL(NeuralNetwork) 예측 확률(0~1)
+      playable_dl       : int   -> DL(NeuralNetwork) 예측 결과 (0=불가,1=가능)
+     final_playable    : int   -> 최종 골프 가능 여부 (0=불가,1=가능), playable_rule OR playable_ml
+
+# summary (list of str):
+
+      각 시간별 날씨 정보 및 골프 가능 여부를 사람이 읽기 좋은 문자열 형태
+      예시:
+     "2025-09-13 14:00:00 — 기온 25.0°C, 습도 65%, 풍속 4.0m/s, 안개지수 12.0 → 골프장: 가능 (ML:0.92)"
+
 ## 도커 실행 순서
 
 docker-compose down
