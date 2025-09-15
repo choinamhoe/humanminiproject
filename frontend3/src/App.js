@@ -1,77 +1,71 @@
-// src/App.js
-import React, { useState } from "react";
+import React from "react";
 import {
   BrowserRouter as Router,
   Routes,
   Route,
-  useLocation,
+  useMatch,
+  useNavigate,
 } from "react-router-dom";
 import Home from "./Home";
 import MapView from "./mapview";
 import DetailPages from "./pages/DetailPages";
+import { motion, AnimatePresence } from "framer-motion";
 
 function LayoutWithMap() {
-  const location = useLocation();
-  const [panelWidth, setPanelWidth] = useState(400); // ✅ 초기 패널 너비
-
-  // 드래그 시작
-  const startResize = (e) => {
-    const startX = e.clientX;
-    const startWidth = panelWidth;
-
-    const onMouseMove = (moveEvent) => {
-      const newWidth = startWidth - (moveEvent.clientX - startX);
-      if (newWidth > 300 && newWidth < 800) {
-        setPanelWidth(newWidth);
-      }
-    };
-
-    const onMouseUp = () => {
-      document.removeEventListener("mousemove", onMouseMove);
-      document.removeEventListener("mouseup", onMouseUp);
-    };
-
-    document.addEventListener("mousemove", onMouseMove);
-    document.addEventListener("mouseup", onMouseUp);
-  };
+  const matchDetail = useMatch("/detail/:id");
+  const navigate = useNavigate();
 
   return (
     <div style={{ position: "relative", height: "100vh" }}>
-      {/* 항상 지도는 배경에 렌더링 */}
+      {/* 항상 지도 */}
       <MapView />
 
-      {/* /detail/:id 일 때 오른쪽 패널 띄움 */}
-      {location.pathname.startsWith("/detail") && (
-        <div
-          style={{
-            position: "absolute",
-            top: 0,
-            right: 0,
-            width: `${panelWidth}px`,
-            height: "100%",
-            background: "#fff",
-            boxShadow: "-4px 0 12px rgba(0,0,0,0.2)",
-            zIndex: 9999,
-            overflowY: "auto",
-          }}
-        >
-          <DetailPages />
+      <AnimatePresence>
+        {matchDetail && (
+          <>
+            {/* ✅ 검은 오버레이 */}
+            <motion.div
+              key="overlay"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 0.5 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.3 }}
+              style={{
+                position: "absolute",
+                top: 0,
+                left: 0,
+                width: "100%",
+                height: "100%",
+                background: "black",
+                zIndex: 9998,
+              }}
+              onClick={() => navigate(-1)} // 오버레이 클릭 → 닫기
+            />
 
-          {/* 리사이즈 핸들 */}
-          <div
-            onMouseDown={startResize}
-            style={{
-              position: "absolute",
-              left: 0,
-              top: 0,
-              width: "5px",
-              height: "100%",
-              cursor: "ew-resize",
-              background: "transparent",
-            }}
-          />
-        </div>
-      )}
+            {/* ✅ 오른쪽 슬라이드 패널 */}
+            <motion.div
+              key="detail-panel"
+              initial={{ x: "100%" }}
+              animate={{ x: 0 }}
+              exit={{ x: "100%" }}
+              transition={{ duration: 0.4, ease: "easeInOut" }}
+              style={{
+                position: "absolute",
+                top: 0,
+                right: 0,
+                width: "400px",
+                height: "100%",
+                background: "#fff",
+                boxShadow: "-4px 0 12px rgba(0,0,0,0.2)",
+                zIndex: 9999,
+                overflowY: "auto",
+              }}
+            >
+              <DetailPages />
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
@@ -82,6 +76,7 @@ function App() {
       <Routes>
         <Route path="/" element={<Home />} />
         <Route path="/map" element={<LayoutWithMap />} />
+        {/* ✅ /detail/:id 라우트 */}
         <Route path="/detail/:id" element={<LayoutWithMap />} />
       </Routes>
     </Router>

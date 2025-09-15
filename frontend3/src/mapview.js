@@ -1,33 +1,37 @@
-// src/mapview.js
 import axios from "axios";
 import React, { useEffect, useState, useRef } from "react";
 import { MapContainer, TileLayer, Marker, Popup, GeoJSON } from "react-leaflet";
-import { useNavigate } from "react-router-dom"; // ✅ 추가
+import { useNavigate } from "react-router-dom";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import "./mapview.css";
 
 const MapView = () => {
   const [geoData, setGeoData] = useState(null);
-  const [filteredLocations, setFilteredLocations] = useState([]); // 현재 지도에 표시할 마커들
+  const [filteredLocations, setFilteredLocations] = useState([]);
   const [selectedRegion, setSelectedRegion] = useState(null);
   const [mapInstance, setMapInstance] = useState(null);
-  const [areaIds, setAreaIds] = useState([]); // 전체 골프장 데이터 저장
+  const [areaIds, setAreaIds] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   const mapRef = useRef();
 
-  const navigate = useNavigate(); // ✅ 선언
+  const navigate = useNavigate();
 
   // ✅ GeoJSON 불러오기
   useEffect(() => {
     fetch(process.env.PUBLIC_URL + "/ctprvn.geojson")
       .then((res) => res.json())
       .then((data) => setGeoData(data))
-      .catch((err) => console.error("GeoJSON 오류:", err));
+      .catch((err) => {
+        console.error("GeoJSON 오류:", err);
+        setError("지역 경계 데이터를 불러오지 못했습니다.");
+      });
   }, []);
 
   // 🔴 마커 아이콘
   const flagIcon = new L.Icon({
-    iconUrl: process.env.PUBLIC_URL + "/red.png", // 반드시 public/red.png 있어야 함
+    iconUrl: process.env.PUBLIC_URL + "/red.png",
     iconSize: [30, 30],
     iconAnchor: [15, 30],
     popupAnchor: [0, -28],
@@ -36,18 +40,17 @@ const MapView = () => {
   // ✅ 초기화 버튼
   const handleReset = () => {
     if (mapInstance) {
-      mapInstance.setView([36.5, 127.5], 7); // 전국 뷰로 리셋
+      mapInstance.setView([36.5, 127.5], 7);
       setSelectedRegion(null);
-      setFilteredLocations([]); // 🔴 마커 초기화
+      setFilteredLocations([]);
     }
   };
 
   // ✅ 지역명 보정 함수
   const normalizeArea = (name) => {
     if (!name) return "";
-
     return name
-      .replace("세종특별자치시", "세종") // ✅ 세종 처리
+      .replace("세종특별자치시", "세종")
       .replace("특별자치도", "")
       .replace("광역시", "")
       .replace("특별시", "")
@@ -63,7 +66,7 @@ const MapView = () => {
       .trim();
   };
 
-  // ✅ 전체 데이터 불러오기 → areaIds에 저장만 함
+  // ✅ 전체 데이터 불러오기
   useEffect(() => {
     const fetchData = async () => {
       try {
@@ -82,19 +85,41 @@ const MapView = () => {
                 longitude: lng,
                 address: item.addr,
                 area: item.area,
-                imageUrl: item.imageUrl, // ✅ 서버에 있으면 매핑
+                imageUrl: item.imageUrl,
               };
             })
             .filter((loc) => !isNaN(loc.latitude) && !isNaN(loc.longitude));
 
-          setAreaIds(parsed); // 🔴 전체 데이터만 저장
+          setAreaIds(parsed);
+        } else {
+          setError("골프장 데이터를 불러오지 못했습니다.");
         }
       } catch (e) {
-        console.log("error", e);
+        console.error("❌ 데이터 불러오기 오류:", e);
+        setError("서버에서 데이터를 불러올 수 없습니다.");
+      } finally {
+        setLoading(false);
       }
     };
     fetchData();
   }, []);
+
+  // ✅ 로딩/에러 처리
+  if (loading) {
+    return (
+      <div className="loading-overlay">
+        <img
+          src={process.env.PUBLIC_URL + "/golfball.png"}
+          alt="loading"
+          className="golfball-spinner"
+        />
+      </div>
+    );
+  }
+
+  if (error) {
+    return <div style={{ padding: "20px", color: "red" }}>{error}</div>;
+  }
 
   return (
     <div className="map-wrapper" style={{ position: "relative" }}>
@@ -117,7 +142,7 @@ const MapView = () => {
           attribution="&copy; OpenStreetMap contributors"
         />
 
-        {/* 🔴 현재 선택된 지역 마커만 표시 */}
+        {/* 🔴 현재 선택된 지역 마커 */}
         {filteredLocations.map((loc, idx) => (
           <Marker
             key={idx}
@@ -132,20 +157,23 @@ const MapView = () => {
                   위도: {loc.latitude}, 경도: {loc.longitude}
                 </small>
 
-                {/* ✅ 이미지 추가 + 클릭 시 Detail 이동 */}
                 <img
                   src={loc.imageUrl || process.env.PUBLIC_URL + "/샘플.jpg"}
                   alt={loc.name}
-                  style={{ width: "100%", marginTop: "8px", cursor: "pointer" }}
-                  onClick={() => navigate(`/detail?id=${loc.id}`)}
+                  style={{
+                    width: "100%",
+                    marginTop: "8px",
+                    cursor: "pointer",
+                  }}
+                  onClick={() => navigate(`/detail/${loc.id}`)}
                 />
               </div>
             </Popup>
           </Marker>
         ))}
 
-        {/* GeoJSON 지역 경계 */}
-        {geoData && (
+        {/* ✅ 데이터 준비된 후에만 GeoJSON 표시 */}
+        {geoData && areaIds.length > 0 && (
           <GeoJSON
             data={geoData}
             style={(feature) =>
@@ -168,7 +196,6 @@ const MapView = () => {
                 click: async () => {
                   const rawArea = feature.properties?.CTP_KOR_NM;
                   setSelectedRegion(rawArea);
-                  console.log("🟢 클릭된 지역:", rawArea);
 
                   try {
                     const parsed = areaIds.filter(
@@ -177,7 +204,6 @@ const MapView = () => {
                         normalizeArea(item.area) === normalizeArea(rawArea)
                     );
 
-                    console.log("📍 선택된 지역 마커 좌표:", parsed);
                     setFilteredLocations(parsed);
 
                     if (mapRef.current && parsed.length > 0) {

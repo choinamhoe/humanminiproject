@@ -1,4 +1,3 @@
-// src/pages/DetailPages.jsx
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import WeatherNow from "../components/WeatherNow";
@@ -16,7 +15,6 @@ function DetailPages() {
 
   useEffect(() => {
     if (!id) return;
-
     setLoading(true);
     fetch("http://192.168.0.38:8000/detail", {
       method: "POST",
@@ -28,16 +26,25 @@ function DetailPages() {
         setGolfInfo(data.golfDetail.golfInfo[0]);
         setWeather(data.golfDetail.golfCurrentWeather);
       })
-      .catch((err) => console.error(err))
+      .catch((err) => console.error("❌ 상세 API 오류:", err))
       .finally(() => setLoading(false));
   }, [id]);
 
   if (loading) return <p className="detail-container">로딩 중...</p>;
 
   return (
-    <div className="detail-container">
+    <div
+      className="detail-container"
+      style={{
+        backgroundImage: "url('/flagbackground.png')",
+        backgroundSize: "cover",
+        backgroundPosition: "center",
+        backgroundRepeat: "no-repeat",
+      }}
+    >
+      {/* 닫기 버튼 */}
       <button onClick={() => navigate("/map")} className="detail-close-btn">
-        닫기 ✕
+        ✕
       </button>
 
       <h2 className="detail-title">
@@ -52,6 +59,8 @@ function DetailPages() {
           <p className="detail-item">• 주소: {golfInfo.addr}</p>
           <p className="detail-item">• 지역: {golfInfo.area}</p>
           <p className="detail-item">• 구분: {golfInfo.detailedType}</p>
+          <p className="detail-item">• 위도: {golfInfo.Latitude}</p>
+          <p className="detail-item">• 경도: {golfInfo.Longitude}</p>
         </section>
       )}
 
