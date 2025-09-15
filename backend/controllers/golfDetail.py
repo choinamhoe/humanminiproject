@@ -19,8 +19,7 @@ async def post_controllers_golfDetail(request: GolfDetailRequest):
             status_code=status.HTTP_200_OK
         )
     except Exception as e:
-        print(str(e))
         return JSONResponse(
-            {"message":"테스트 실패"},
+            {"message":f"테스트 실패: {str(e)}"},
             status_code=status.HTTP_404_NOT_FOUND
         )

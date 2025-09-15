@@ -18,8 +18,16 @@ from common.model_train import (
     compute_fog_index_row
 )
 
-SERVICE_KEY = "3b8dcb53f1ccdd05fb434481223a53ff8fe1a47df3860abbb1a315ddf2637338"
-
+# SERVICE_KEY = "3b8dcb53f1ccdd05fb434481223a53ff8fe1a47df3860abbb1a315ddf2637338"
+SERVICE_KEYS = [
+    "3b8dcb53f1ccdd05fb434481223a53ff8fe1a47df3860abbb1a315ddf2637338",
+    "b4334a15c2d153a244e846cf40edf1532f9bf56f262a9cc4ea5e2522ea38f9ea",
+    "420b63b417a99ff90d24fb6538f51d9a3785c2e2756a544c05d27c9ebf0c0673",
+    "89d11f51ba180d310e2afc89e6e9b9ce2b190d2bbac6eb6dedf116ebd641b6d2",
+    ]
+# DROP_KEYS = ["3b8dcb53f1ccdd05fb434481223a53ff8fe1a47df3860abbb1a315ddf2637338"]
+# SERVICE_KEYS = list(set(SERVICE_KEYS) - set(DROP_KEYS))
+idx = 0
 # --- 샘플 골프장 좌표 (x,y는 기상청 좌표) ---
 GOLF_LOCATIONS = pd.DataFrame({
     "Latitude": [37.5665, 35.1796],
@@ -75,24 +83,12 @@ summary (list of str):
 """
 # --- KMA API 호출 ---
 def fetch_weather_kma(lat, lon):
-    # closest, nx, ny = find_closest_location(lat, lon)
-    # seoul_tz = pytz.timezone("Asia/Seoul")
-    # now = datetime.datetime.now(seoul_tz)
-    # base_date = now.strftime("%Y%m%d")
-    # base_time = (now.replace(minute=0, second=0) - pd.Timedelta(hours=1)).strftime("%H%M")
-
-    # if SERVICE_KEY is None:
-    #     hours = pd.date_range(start=now, periods=6, freq="H", tz=seoul_tz)
-    #     rng = np.random.default_rng(123)
-    #     df = pd.DataFrame({
-    #         "time": hours,
-    #         "temperature": 10 + 5*rng.normal(size=len(hours)),
-    #         "humidity": np.clip(60 + 20*rng.normal(size=len(hours)),0,100),
-    #         "wind_speed": np.clip(3 + 2*rng.normal(size=len(hours)),0,20),
-    #         "visibility": 10000,
-    #         "precip_prob": np.clip(5 + 20*rng.normal(size=len(hours)),0,100),
-    #     })
-    #     return df
+    global idx 
+    # print(len(SERVICE_KEYS))
+    # print(idx)
+    idx += 1
+    idx = idx%len(SERVICE_KEYS)
+    SERVICE_KEY = SERVICE_KEYS[idx]
     closest, nx, ny = find_closest_location(lat, lon)
     seoul_tz = pytz.timezone("Asia/Seoul")
     now = datetime.datetime.now(seoul_tz)
@@ -117,12 +113,8 @@ def fetch_weather_kma(lat, lon):
     params = {"serviceKey": SERVICE_KEY, "numOfRows":1000, "pageNo":1,
               "dataType":"JSON","base_date":base_date,"base_time":base_time,
               "nx":int(nx),"ny":int(ny)}
-    # params = {"serviceKey": SERVICE_KEY, "numOfRows":1000, "pageNo":1,
-    #           "dataType":"JSON","base_date":base_date,"base_time":base_time,
-    #           "nx":str(nx),"ny":str(ny)}
-    #print(f"url : {url}")
-    #print(f"params : {params}")
     resp = requests.get(url, params=params, timeout=15)
+
     resp.raise_for_status()
     data = resp.json()
     #print(f"resp.json data :{data}")  # <- 먼저 API 응답 구조 확인
@@ -133,15 +125,18 @@ def fetch_weather_kma(lat, lon):
    
     # 각 컬럼 존재 여부 확인 후 DataFrame 생성
     # DataFrame 생성
-    df = pd.DataFrame({
-        "time": pivot["datetime"],
-        "temperature": pivot["T1H"].astype(float) if "T1H" in pivot.columns else 0.0,
-        "humidity": pivot["REH"].astype(float) if "REH" in pivot.columns else 0.0,
-        "wind_speed": pivot["WSD"].astype(float) if "WSD" in pivot.columns else 0.0,
-        "visibility": 10000,
-        "precip_prob": pivot["POP"].astype(float) if "POP" in pivot.columns else 0.0,
-        "precipitation": pivot["PCP"].apply(parse_precip) if "PCP" in pivot.columns else 0.0
-    })
+    try:
+        df = pd.DataFrame({
+            "time": pivot["datetime"],
+            "temperature": pivot["T1H"].astype(float) if "T1H" in pivot.columns else 0.0,
+            "humidity": pivot["REH"].astype(float) if "REH" in pivot.columns else 0.0,
+            "wind_speed": pivot["WSD"].astype(float) if "WSD" in pivot.columns else 0.0,
+            "visibility": 10000,
+            "precip_prob": pivot["POP"].astype(float) if "POP" in pivot.columns else 0.0,
+            "precipitation": pivot["PCP"].apply(parse_precip) if "PCP" in pivot.columns else 0.0
+        })
+    except:
+        print("pivot error")
     return df
 
 # --- 외부 호출용 함수 ---
@@ -155,6 +150,13 @@ def fetch_weather_kma_short(lat, lon, use_deep=True):
 
 # --- 단기예보 (6~24시간) ---
 def fetch_weather_kma_long(lat, lon):
+    global idx 
+    # print(len(SERVICE_KEYS))
+    # print(idx)
+    idx += 1
+    idx = idx%len(SERVICE_KEYS)
+    SERVICE_KEY = SERVICE_KEYS[idx]
+    
     #print(f"fetch_weather_kma_long start lat : {lat}, lon : {lon}")
     closest, nx, ny = find_closest_location(lat, lon)
     seoul_tz = pytz.timezone("Asia/Seoul")
@@ -185,6 +187,7 @@ def fetch_weather_kma_long(lat, lon):
     resp = requests.get(url, params=params, timeout=15)
     resp.raise_for_status()
     data = resp.json()
+        
     # print(f"fetch_weather_kma_long 응답 data : {data}")
     if data['response']['header']['resultCode'] != '00':
         raise ValueError(f"단기예보 API 오류: {data['response']['header']['resultMsg']}")
@@ -193,16 +196,19 @@ def fetch_weather_kma_long(lat, lon):
     df_raw = pd.DataFrame(items)
     df_raw["datetime"] = pd.to_datetime(df_raw["fcstDate"] + df_raw["fcstTime"], format="%Y%m%d%H%M").dt.tz_localize(seoul_tz)
     pivot = df_raw.pivot(index="datetime", columns="category", values="fcstValue").reset_index()
-    df = pd.DataFrame({
-        "time": pivot["datetime"],
-        #"temperature": pivot["T3H"].astype(float) if "T3H" in pivot.columns else 0.0,
-        "temperature": pivot["TMP"].astype(float) if "TMP" in pivot.columns else 0.0,
-        "humidity": pivot["REH"].astype(float) if "REH" in pivot.columns else 0.0,
-        "wind_speed": pivot["WSD"].astype(float) if "WSD" in pivot.columns else 0.0,
-        "visibility": 10000,
-        "precip_prob": pivot["POP"].astype(float) if "POP" in pivot.columns else 0.0,
-        "precipitation": pivot["PCP"].apply(parse_precip) if "PCP" in pivot.columns else 0.0
-    })
+    try:
+        df = pd.DataFrame({
+            "time": pivot["datetime"],
+            "temperature": pivot["TMP"].astype(float) if "TMP" in pivot.columns else 0.0,
+            "humidity": pivot["REH"].astype(float) if "REH" in pivot.columns else 0.0,
+            "wind_speed": pivot["WSD"].astype(float) if "WSD" in pivot.columns else 0.0,
+            "visibility": 10000,
+            "precip_prob": pivot["POP"].astype(float) if "POP" in pivot.columns else 0.0,
+            "precipitation": pivot["PCP"].apply(parse_precip) if "PCP" in pivot.columns else 0.0
+        })
+    except:
+        print("pivot error")
+
     # 6시간 이상 데이터만 선택
     #df = df[df["time"] > datetime.datetime.now(seoul_tz)]
     # 6시간 이후 데이터만 선택

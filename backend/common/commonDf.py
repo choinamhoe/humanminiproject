@@ -65,14 +65,22 @@ def postprocess_weather(data,dateColumn):
         processed.append(new_item)
     return processed
 
+import numpy as np 
 def parse_precip(pcp_str):
-    if pcp_str in ["강수없음", "1mm미만"]:
-        return 0.0
-    elif "~" in pcp_str:  # "1~4" 형태
-        start, end = map(float, pcp_str.split("~"))
-        return (start + end) / 2  # 범위의 평균
-    else:
-        try:
-            return float(pcp_str)
-        except:
-            return 0.0
+    try:
+        if isinstance(pcp_str, str):
+            if pcp_str in ["강수없음", "1mm미만"]:
+                return 0.0
+            elif "~" in pcp_str:  # "1~4" 형태
+                start, end = map(float, pcp_str.split("~"))
+                return (start + end) / 2  # 범위의 평균
+            else:
+                try:
+                    return float(pcp_str)
+                except:
+                    return 0.0
+        else:
+            if np.isnan(pcp_str):
+                return 0.0
+    except:
+        print("prec error",pcp_str, type(pcp_str))

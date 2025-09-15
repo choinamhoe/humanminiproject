@@ -60,7 +60,7 @@ def post_services_golfDetail(id):
    # - datetime을 기준으로 pivot하여 각 category 값이 컬럼으로 배치됨
    # - id 컬럼은 단순 순번
    #print(f"current_location before lon: {lon}, lat: {lat}")
-   current_weather = current_location(lon,lat)
+   # current_weather = current_location(lon,lat)
    #print(f"current_location after current_weather: {current_weather}")
 
    # --- 반환값 컬럼 설명 ---
