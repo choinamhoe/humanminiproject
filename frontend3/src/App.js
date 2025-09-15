@@ -1,72 +1,77 @@
-import React from "react";
+// src/App.js
+import React, { useState } from "react";
 import {
   BrowserRouter as Router,
   Routes,
   Route,
-  useMatch,
-  useNavigate,
+  useLocation,
 } from "react-router-dom";
-import Home from "./Home"; // ✅ Home.js
-import MapView from "./mapview"; // ✅ mapview.js
-import DetailPages from "./pages/DetailPages"; // ✅ 상세 패널
-import { motion, AnimatePresence } from "framer-motion";
+import Home from "./Home";
+import MapView from "./mapview";
+import DetailPages from "./pages/DetailPages";
 
 function LayoutWithMap() {
-  const matchDetail = useMatch("/detail/:id"); // URL이 /detail/:id 인지 확인
-  const navigate = useNavigate();
+  const location = useLocation();
+  const [panelWidth, setPanelWidth] = useState(400); // ✅ 초기 패널 너비
+
+  // 드래그 시작
+  const startResize = (e) => {
+    const startX = e.clientX;
+    const startWidth = panelWidth;
+
+    const onMouseMove = (moveEvent) => {
+      const newWidth = startWidth - (moveEvent.clientX - startX);
+      if (newWidth > 300 && newWidth < 800) {
+        setPanelWidth(newWidth);
+      }
+    };
+
+    const onMouseUp = () => {
+      document.removeEventListener("mousemove", onMouseMove);
+      document.removeEventListener("mouseup", onMouseUp);
+    };
+
+    document.addEventListener("mousemove", onMouseMove);
+    document.addEventListener("mouseup", onMouseUp);
+  };
 
   return (
     <div style={{ position: "relative", height: "100vh" }}>
-      {/* 지도 항상 표시 */}
+      {/* 항상 지도는 배경에 렌더링 */}
       <MapView />
 
-      {/* 상세 페이지가 열릴 때 애니메이션 */}
-      <AnimatePresence>
-        {matchDetail && (
-          <>
-            {/* 검은 배경 오버레이 */}
-            <motion.div
-              key="overlay"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 0.5 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.3 }}
-              style={{
-                position: "absolute",
-                top: 0,
-                left: 0,
-                width: "100%",
-                height: "100%",
-                background: "black",
-                zIndex: 9998,
-              }}
-              onClick={() => navigate(-1)} // 오버레이 클릭 시 뒤로가기
-            />
+      {/* /detail/:id 일 때 오른쪽 패널 띄움 */}
+      {location.pathname.startsWith("/detail") && (
+        <div
+          style={{
+            position: "absolute",
+            top: 0,
+            right: 0,
+            width: `${panelWidth}px`,
+            height: "100%",
+            background: "#fff",
+            boxShadow: "-4px 0 12px rgba(0,0,0,0.2)",
+            zIndex: 9999,
+            overflowY: "auto",
+          }}
+        >
+          <DetailPages />
 
-            {/* 오른쪽 디테일 패널 */}
-            <motion.div
-              key="detail-panel"
-              initial={{ x: "100%" }}
-              animate={{ x: 0 }}
-              exit={{ x: "100%" }}
-              transition={{ duration: 0.4, ease: "easeInOut" }}
-              style={{
-                position: "absolute",
-                top: 0,
-                right: 0,
-                width: "400px",
-                height: "100%",
-                background: "#fff",
-                boxShadow: "-4px 0 12px rgba(0,0,0,0.2)",
-                zIndex: 9999,
-                overflowY: "auto",
-              }}
-            >
-              <DetailPages />
-            </motion.div>
-          </>
-        )}
-      </AnimatePresence>
+          {/* 리사이즈 핸들 */}
+          <div
+            onMouseDown={startResize}
+            style={{
+              position: "absolute",
+              left: 0,
+              top: 0,
+              width: "5px",
+              height: "100%",
+              cursor: "ew-resize",
+              background: "transparent",
+            }}
+          />
+        </div>
+      )}
     </div>
   );
 }
@@ -75,13 +80,8 @@ function App() {
   return (
     <Router>
       <Routes>
-        {/* 홈 */}
         <Route path="/" element={<Home />} />
-
-        {/* 지도 */}
         <Route path="/map" element={<LayoutWithMap />} />
-
-        {/* 디테일 패널은 /map 과 동일한 레이아웃 */}
         <Route path="/detail/:id" element={<LayoutWithMap />} />
       </Routes>
     </Router>
