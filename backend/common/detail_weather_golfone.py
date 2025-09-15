@@ -47,3 +47,4 @@ def label_golf_playable(row):
 
 weather_df['golf_playable'] = weather_df.apply(label_golf_playable, axis=1)
 print(weather_df[['time','golf_playable']])
+
