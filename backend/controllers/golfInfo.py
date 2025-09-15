@@ -7,7 +7,7 @@ async def post_controllers_golfList():
     print("controllers post_controllers_golfList start")
     try:
         res = post_services_golfList()
-        print(f"controllers post_controllers_golfList res : {res}")
+        #print(f"controllers post_controllers_golfList res : {res}")
         # res_dict = json.loads(res)
         return JSONResponse(    
             {"golfList":res},

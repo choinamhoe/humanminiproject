@@ -42,7 +42,7 @@ def post_services_golfList():
       golfInfo.loc[i,"WS"] = WS_idw[i]
       golfInfo.loc[i,"WD"] = WD_idw[i]
       golfInfo.loc[i,"RN"] = RN_idw[i]
-   print(f"golfInfo : {golfInfo}")
+   #print(f"golfInfo : {golfInfo}")
    #골프장 정보 상세
    name = 'golfInfo'
    golfInfoDict = dftoDict(golfInfo,name)
