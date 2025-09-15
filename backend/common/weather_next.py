@@ -47,7 +47,7 @@ def current_location(lon, lat):
     calc_fun = find_closest_location(lon, lat,lat_col='lat',  lon_col='lon')
     locationInfo.loc[:, 'distance'] = locationInfo.apply(calc_fun, axis=1)
     nx, ny = locationInfo.loc[locationInfo["distance"].idxmin(), ["x", 'y']]
-    print(locationInfo)
+    #print(locationInfo)
 
     # API 호출
     key = "0a0633bc3348a83dc93f4b0516f2d5877db153b07792a880a3645c677029ce44"
