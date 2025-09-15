@@ -9,6 +9,16 @@
   font-family: "Arial", sans-serif;
   background-attachment: scroll;
 }
+.detail-close-btn {
+  position: right;
+  top: -10px;
+  right: -320px; /* ✅ 오른쪽 상단 */
+  background: none;
+  border: none;
+  font-size: 24px;
+  cursor: pointer;
+  z-index: 2; /* ✅ 오버레이(::before) 위에 보이도록 */
+}
 
 /* ✅ 반투명 흰색 오버레이 */
 .detail-container::before {
