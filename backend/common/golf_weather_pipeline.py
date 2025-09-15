@@ -8,6 +8,7 @@ import joblib
 from geopy.distance import geodesic
 from common.weather_next import find_closest_location2
 from common.model_train import compute_fog_index_playable_rule
+from common.commonDf import parse_precip
 
 # ML/DL 함수 import (합성 데이터 관련 제거)
 from common.model_train import (
@@ -74,6 +75,24 @@ summary (list of str):
 """
 # --- KMA API 호출 ---
 def fetch_weather_kma(lat, lon):
+    # closest, nx, ny = find_closest_location(lat, lon)
+    # seoul_tz = pytz.timezone("Asia/Seoul")
+    # now = datetime.datetime.now(seoul_tz)
+    # base_date = now.strftime("%Y%m%d")
+    # base_time = (now.replace(minute=0, second=0) - pd.Timedelta(hours=1)).strftime("%H%M")
+
+    # if SERVICE_KEY is None:
+    #     hours = pd.date_range(start=now, periods=6, freq="H", tz=seoul_tz)
+    #     rng = np.random.default_rng(123)
+    #     df = pd.DataFrame({
+    #         "time": hours,
+    #         "temperature": 10 + 5*rng.normal(size=len(hours)),
+    #         "humidity": np.clip(60 + 20*rng.normal(size=len(hours)),0,100),
+    #         "wind_speed": np.clip(3 + 2*rng.normal(size=len(hours)),0,20),
+    #         "visibility": 10000,
+    #         "precip_prob": np.clip(5 + 20*rng.normal(size=len(hours)),0,100),
+    #     })
+    #     return df
     closest, nx, ny = find_closest_location(lat, lon)
     seoul_tz = pytz.timezone("Asia/Seoul")
     now = datetime.datetime.now(seoul_tz)
@@ -90,6 +109,7 @@ def fetch_weather_kma(lat, lon):
             "wind_speed": np.clip(3 + 2*rng.normal(size=len(hours)),0,20),
             "visibility": 10000,
             "precip_prob": np.clip(5 + 20*rng.normal(size=len(hours)),0,100),
+            "precipitation": np.clip(0 + 10*rng.normal(size=len(hours)),0,100),  # 강수량 추가
         })
         return df
 
@@ -105,27 +125,22 @@ def fetch_weather_kma(lat, lon):
     resp = requests.get(url, params=params, timeout=15)
     resp.raise_for_status()
     data = resp.json()
-    #print(data)  # <- 먼저 API 응답 구조 확인
+    #print(f"resp.json data :{data}")  # <- 먼저 API 응답 구조 확인
     items = data["response"]["body"]["items"]["item"]
     df_raw = pd.DataFrame(items)
     df_raw["datetime"] = pd.to_datetime(df_raw["fcstDate"] + df_raw["fcstTime"], format="%Y%m%d%H%M").dt.tz_localize(seoul_tz)
     pivot = df_raw.pivot(index="datetime", columns="category", values="fcstValue").reset_index()
-    # df = pd.DataFrame({
-    #     "time": pivot["datetime"],
-    #     "temperature": pivot.get("T1H",0).astype(float),
-    #     "humidity": pivot.get("REH",0).astype(float),
-    #     "wind_speed": pivot.get("WSD",0).astype(float),
-    #     "visibility": 10000,
-    #     "precip_prob": pivot.get("POP",0).astype(float)
-    # })
+   
     # 각 컬럼 존재 여부 확인 후 DataFrame 생성
+    # DataFrame 생성
     df = pd.DataFrame({
         "time": pivot["datetime"],
         "temperature": pivot["T1H"].astype(float) if "T1H" in pivot.columns else 0.0,
         "humidity": pivot["REH"].astype(float) if "REH" in pivot.columns else 0.0,
         "wind_speed": pivot["WSD"].astype(float) if "WSD" in pivot.columns else 0.0,
         "visibility": 10000,
-        "precip_prob": pivot["POP"].astype(float) if "POP" in pivot.columns else 0.0
+        "precip_prob": pivot["POP"].astype(float) if "POP" in pivot.columns else 0.0,
+        "precipitation": pivot["PCP"].apply(parse_precip) if "PCP" in pivot.columns else 0.0
     })
     return df
 
@@ -154,18 +169,6 @@ def fetch_weather_kma_long(lat, lon):
     base_date = now.strftime("%Y%m%d")
     base_time = get_base_time(now)  # 단기예보 기준시간 (예시, 실제는 KMA 기준 확인 필요)
    
-    # if SERVICE_KEY is None:
-    #     hours = pd.date_range(start=6, periods=24, freq="H", tz=seoul_tz)
-    #     rng = np.random.default_rng(123)
-    #     df = pd.DataFrame({
-    #         "time": hours,
-    #         "temperature": 10 + 5*rng.normal(size=len(hours)),
-    #         "humidity": np.clip(60 + 20*rng.normal(size=len(hours)),0,100),
-    #         "wind_speed": np.clip(3 + 2*rng.normal(size=len(hours)),0,20),
-    #         "visibility": 10000,
-    #         "precip_prob": np.clip(5 + 20*rng.normal(size=len(hours)),0,100),
-    #     })
-    #     return df
     url = "http://apis.data.go.kr/1360000/VilageFcstInfoService_2.0/getVilageFcst"
     params = {
         "serviceKey": SERVICE_KEY,
@@ -190,14 +193,6 @@ def fetch_weather_kma_long(lat, lon):
     df_raw = pd.DataFrame(items)
     df_raw["datetime"] = pd.to_datetime(df_raw["fcstDate"] + df_raw["fcstTime"], format="%Y%m%d%H%M").dt.tz_localize(seoul_tz)
     pivot = df_raw.pivot(index="datetime", columns="category", values="fcstValue").reset_index()
-    # df = pd.DataFrame({
-    #     "time": pivot["datetime"],
-    #     "temperature": pivot.get("T3H", 0).astype(float),
-    #     "humidity": pivot.get("REH", 0).astype(float),
-    #     "wind_speed": pivot.get("WSD", 0).astype(float),
-    #     "visibility": 10000,
-    #     "precip_prob": pivot.get("POP", 0).astype(float)
-    # })
     df = pd.DataFrame({
         "time": pivot["datetime"],
         #"temperature": pivot["T3H"].astype(float) if "T3H" in pivot.columns else 0.0,
@@ -205,7 +200,8 @@ def fetch_weather_kma_long(lat, lon):
         "humidity": pivot["REH"].astype(float) if "REH" in pivot.columns else 0.0,
         "wind_speed": pivot["WSD"].astype(float) if "WSD" in pivot.columns else 0.0,
         "visibility": 10000,
-        "precip_prob": pivot["POP"].astype(float) if "POP" in pivot.columns else 0.0
+        "precip_prob": pivot["POP"].astype(float) if "POP" in pivot.columns else 0.0,
+        "precipitation": pivot["PCP"].apply(parse_precip) if "PCP" in pivot.columns else 0.0
     })
     # 6시간 이상 데이터만 선택
     #df = df[df["time"] > datetime.datetime.now(seoul_tz)]

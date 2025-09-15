@@ -107,12 +107,14 @@ def compute_fog_index_playable_rule(df):
         axis=1
     )
     #print(f"compute_fog_index_playable_rule after compute_fog_index_row df : {df}")
+    
     # --- rule 기반 골프 가능 여부 ---
     df["playable_rule"] = df.apply(
-        lambda r: 1 if (r.precip_prob<30 and r.wind_speed<10 and r.fog_index<40) else 0,
+        lambda r: 1 if (r.precip_prob < 30 and r.wind_speed < 10 and r.fog_index < 40) else 0,
         axis=1
     )
-    #print(f"compute_fog_index_playable_rule after playable_rule df : {df["playable_rule"]}")
+    #print(f"compute_fog_index_playable_rule after playable_rule df : {df['playable_rule']}")
+    
     features = ["temperature","humidity","wind_speed","visibility","precip_prob","fog_index"]
 
     # --- ML 예측 ---
@@ -121,43 +123,70 @@ def compute_fog_index_playable_rule(df):
         clf = joblib.load("rf_playable.joblib")
         Xs = scaler.transform(df[features].values)
         df["playable_prob_ml"] = clf.predict_proba(Xs)[:,1]  # ML 예측 확률 (0~1)
-        df["playable_ml"] = (df["playable_prob_ml"]>=0.5).astype(int)  # ML 예측 결과 (0=불가,1=가능)
+        df["playable_ml"] = (df["playable_prob_ml"] >= 0.5).astype(int)  # ML 예측 결과 (0=불가,1=가능)
     except:
         df["playable_prob_ml"] = np.nan
         df["playable_ml"] = np.nan
     #print(f"compute_fog_index_playable_rule after ML 예측 df : {df}")
+    
     # --- DL 예측 ---
     try:
         dl_scaler = joblib.load("scaler_dl.joblib")
         dl_model = load_model("deep_playable.h5", compile=False)
         Xdl = dl_scaler.transform(df[features].values)
         df["playable_prob_dl"] = dl_model.predict(Xdl).reshape(-1)  # DL 예측 확률 (0~1)
-        df["playable_dl"] = (df["playable_prob_dl"]>=0.5).astype(int)  # DL 예측 결과 (0=불가,1=가능)
+        df["playable_dl"] = (df["playable_prob_dl"] >= 0.5).astype(int)  # DL 예측 결과 (0=불가,1=가능)
     except:
         df["playable_prob_dl"] = np.nan
         df["playable_dl"] = np.nan
     
     #print(f"compute_fog_index_playable_rule after DL 예측 df : {df}")
+    
     # --- 최종 골프 가능 여부 결정 ---
     df["final_playable"] = df.apply(
         lambda r: int(bool(r.playable_rule) or bool(r.playable_ml)),
         axis=1
     )
-
     #print(f"compute_fog_index_playable_rule after 최종 골프 가능 여부 결정 df : {df}")
 
-    # --- summary 문자열 생성 ---
+    # --- summary 생성 ---
     summary = []
     for _, r in df.iterrows():
         tstr = r.time.strftime("%Y-%m-%d %H:%M:%S")
-        txt = f"{tstr} — 기온 {r.temperature:.1f}°C, 습도 {r.humidity:.0f}%, 풍속 {r.wind_speed:.1f}m/s, 안개지수 {r.fog_index:.1f} → 골프장: {'가능' if r.final_playable==1 else '불가'} (ML:{r.playable_prob_ml:.2f})"
+
+        # 멘트 조합
+        comments = [
+            get_temp_comment(r.temperature),
+            get_humidity_comment(r.humidity),
+            get_wind_comment(r.wind_speed),
+            get_precip_prob_comment(r.precip_prob),
+            get_precip_amount_comment(r.precipitation),
+            get_visibility_comment(r.visibility)
+        ]
+        comments = [c for c in comments if c]  # 빈 문자열 제거
+        comment_str = " ".join(comments)
+
+        # 최종 요약 문구
+        txt = (
+            f"{tstr} — 기온 {r.temperature:.1f}°C, "
+            f"습도 {r.humidity:.0f}%, "
+            f"풍속 {r.wind_speed:.1f}m/s, "
+            f"강수량 {r.precipitation:.1f}mm, "
+            f"안개지수 {r.fog_index:.1f} "
+            f"→ 골프장: {'가능' if r.final_playable==1 else '불가'} "
+            f"(ML:{r.playable_prob_ml:.2f})"
+            "\n"  # ← 실제 줄바꿈
+            f"👉 {comment_str}"
+        )
+        txt = txt.replace("\n", "<br>")
         summary.append(txt)
     
     df["summary"] = summary
     #print(f"compute_fog_index_playable_rule after summary 문자열 summary : {summary}")
+    
     df = df.reset_index(drop=True)
 
-    # --- 반환값 컬럼 설명 ---
+        # --- 반환값 컬럼 설명 ---
     """
     df (DataFrame) 컬럼:
         id                : int   -> 순번 (1부터 시작)
@@ -167,6 +196,7 @@ def compute_fog_index_playable_rule(df):
         wind_speed        : float -> 풍속(m/s)
         visibility        : float -> 가시거리(m), 기본 10000m
         precip_prob       : float -> 강수 확률(%)
+        precipitation     : float -> 강수량(mm)
         fog_index         : float -> 안개 지수(0~100, 높을수록 안개 심함)
         playable_rule     : int   -> Rule 기반 골프 가능 여부 (0=불가,1=가능)
         playable_prob_ml  : float -> ML(RandomForest) 예측 확률(0~1)
@@ -174,10 +204,76 @@ def compute_fog_index_playable_rule(df):
         playable_prob_dl  : float -> DL(NeuralNetwork) 예측 확률(0~1)
         playable_dl       : int   -> DL(NeuralNetwork) 예측 결과 (0=불가,1=가능)
         final_playable    : int   -> 최종 골프 가능 여부 (0=불가,1=가능), playable_rule OR playable_ml
-
-    summary (list of str):
-        각 시간별 날씨 정보 및 골프 가능 여부를 사람이 읽기 좋은 문자열 형태
-        예시:
-        "2025-09-13 14:00:00 — 기온 25.0°C, 습도 65%, 풍속 4.0m/s, 안개지수 12.0 → 골프장: 가능 (ML:0.92)"
+        summary           : str   -> 사람이 읽기 좋은 요약 문자열
+                               (HTML 출력 대응 위해 줄바꿈은 <br> 로 변환됨)
+                               예시:
+                               "2025-09-13 14:00:00 — 기온 25.0°C, 습도 65%, 풍속 4.0m/s, 강수량 2.5mm, 안개지수 12.0 → 골프장: 가능 (ML:0.92)<br>👉 기온 적당, 바람 약함"
     """
     return df
+
+# --- 조건별 멘트 함수 정의 ---
+def get_temp_comment(t):
+    if 18 <= t <= 27:
+        return "쾌적한 날씨로 라운딩하기 좋습니다."
+    elif 10 <= t <= 17:
+        return "약간 선선합니다. 얇은 외투가 필요할 수 있습니다."
+    elif 28 <= t <= 32:
+        return "다소 더운 날씨, 수분 보충에 신경 쓰세요."
+    elif t < 10:
+        return "추운 날씨, 방한 준비가 필요합니다."
+    elif t > 32:
+        return "무더위 주의! 라운딩 시 열사병 예방에 주의하세요."
+    return ""
+
+def get_humidity_comment(h):
+    if 40 <= h <= 70:
+        return "쾌적한 습도로 플레이하기 좋습니다."
+    elif 71 <= h <= 85:
+        return "습도가 높아 후텁지근할 수 있습니다."
+    elif h > 85:
+        return "습도가 매우 높아 불쾌지수가 큽니다. 수분 보충 필요합니다."
+    return ""
+
+def get_wind_comment(w):
+    if 0 <= w <= 2:
+        return "바람이 거의 없어 안정적인 플레이가 가능합니다."
+    elif 3 <= w <= 5:
+        return "약간의 바람이 있어 클럽 선택에 참고하세요."
+    elif 6 <= w <= 9:
+        return "강한 바람으로 공 방향에 영향이 있습니다. 주의하세요."
+    elif w >= 10:
+        return "매우 강한 바람, 안전에 유의하세요."
+    return ""
+
+def get_precip_prob_comment(p):
+    if p < 20:
+        return "비 예보는 거의 없어 안심하고 플레이하세요."
+    elif 20 <= p <= 50:
+        return "소나기 가능성이 있습니다. 대비가 필요합니다."
+    elif p > 50:
+        return "비가 올 가능성이 큽니다. 우산을 준비하세요."
+    return ""
+
+def get_precip_amount_comment(mm):
+    if mm == 0:
+        return "비가 내리지 않아 쾌적합니다."
+    elif 0 < mm <= 2:
+        return "약한 비가 올 수 있어 레인커버를 준비하세요."
+    elif 2 < mm <= 5:
+        return "비가 이어질 수 있으니 플레이에 유의하세요."
+    elif mm > 5:
+        return "라운딩이 어려울 수 있습니다. 취소 고려 필요합니다."
+    return ""
+
+def get_visibility_comment(v):
+    if v > 5000:
+        return "시야가 좋아 플레이에 문제 없습니다."
+    elif 2000 <= v <= 5000:
+        return "안개로 인해 시야가 다소 흐립니다."
+    elif v < 2000:
+        return "안개가 짙어 시야 확보가 어렵습니다. 주의하세요."
+    return ""
+
+
+
+
