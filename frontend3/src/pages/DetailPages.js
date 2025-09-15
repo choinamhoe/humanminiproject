@@ -10,7 +10,7 @@ function DetailPages() {
   const { id } = useParams();
 
   const [golfInfo, setGolfInfo] = useState(null);
-  const [weather, setWeather] = useState([]);
+  const [weather, setWeather] = useState([]); // 항상 배열
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -23,10 +23,13 @@ function DetailPages() {
     })
       .then((res) => res.json())
       .then((data) => {
-        setGolfInfo(data.golfDetail.golfInfo[0]);
-        setWeather(data.golfDetail.golfCurrentWeather);
+        setGolfInfo(data?.golfDetail?.golfInfo?.[0] || null);
+        setWeather(data?.golfDetail?.golfCurrentWeather || []); // 배열 보장
       })
-      .catch((err) => console.error("❌ 상세 API 오류:", err))
+      .catch((err) => {
+        console.error("❌ 상세 API 오류:", err);
+        setWeather([]); // 안전 처리
+      })
       .finally(() => setLoading(false));
   }, [id]);
 
@@ -65,13 +68,19 @@ function DetailPages() {
       )}
 
       {/* 현재 날씨 */}
-      {weather.length > 0 && <WeatherNow weather={weather} />}
+      {Array.isArray(weather) && weather.length > 0 && (
+        <WeatherNow weather={weather} />
+      )}
 
       {/* 예보 그래프 */}
-      {weather.length > 0 && <WeatherChart weather={weather} />}
+      {Array.isArray(weather) && weather.length > 0 && (
+        <WeatherChart weather={weather} />
+      )}
 
       {/* 추천 메시지 */}
-      {weather.length > 0 && <RecommendMsg weather={weather} />}
+      {Array.isArray(weather) && weather.length > 0 && (
+        <RecommendMsg weather={weather} />
+      )}
     </div>
   );
 }

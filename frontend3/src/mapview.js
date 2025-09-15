@@ -229,7 +229,7 @@ const MapView = () => {
       <div
         style={{
           position: "absolute",
-          bottom: 490,
+          bottom: 780,
           left: 11,
           zIndex: 10000,
           pointerEvents: "auto",
