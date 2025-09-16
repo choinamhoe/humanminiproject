@@ -193,9 +193,9 @@ def compute_fog_index_playable_rule(df):
         df["playable_dl"] = np.nan
 
     # --- 최종 골프 가능 여부 결정 ---
-    # rule OR ML 예측 결과를 사용
+    # rule OR ML OR DL 예측 결과를 사용
     df["final_playable"] = df.apply(
-        lambda r: int(bool(r.playable_rule) or bool(r.playable_ml)),
+        lambda r: int(bool(r.playable_rule) or bool(r.playable_ml) or bool(r.playable_dl)),
         axis=1
     )
 
