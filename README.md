@@ -22,6 +22,10 @@ https://velog.io/@syh0397/%EA%B5%AC%EA%B8%80-%EC%8A%A4%ED%94%84%EB%A0%88%EB%93%9
 
 https://www.perplexity.ai/ 링크 같은거 찾아주는 LLM 서비스입니다.
 
+# 최종 발표 ppt 주소
+
+- https://docs.google.com/presentation/d/1nMZ15XnK3PI56bliBRSUCu8dHg4S1W5vbL3RZzNLVSU/edit?usp=drivesdk
+
 # 주제: 골프장별 맞춤형 실시간 날씨와 플레이 가능성 예측
 
 - 조 이름: swing sky
