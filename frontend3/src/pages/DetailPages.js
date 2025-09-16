@@ -3,8 +3,8 @@ import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import WeatherNow from "../components/WeatherNow";
 import WeatherChart from "../components/WeatherChart";
-import RecommendMsg from "../components/RecommendMsg";
-import PlayAbility from "../components/PlayAbility"; // ✅ 여기 import만 있으면 됨
+// import RecommendMsg from "../components/RecommendMsg";
+import PlayAbility from "../components/PlayAbility";
 import "./DetailPages.css";
 
 function DetailPages() {
@@ -27,7 +27,7 @@ function DetailPages() {
       .then((data) => {
         setGolfInfo(data?.golfDetail?.golfInfo?.[0] || null);
 
-        // ✅ 새 구조 맞게 변환
+        // ✅ 날씨 데이터 매핑
         const mappedWeather = (data?.golfDetail?.golf24HourWeather || []).map(
           (w) => ({
             datetime: w.time,
@@ -78,10 +78,20 @@ function DetailPages() {
           <h3>골프장 정보</h3>
           <p className="detail-item">• 골프장: {golfInfo.storeName}</p>
           <p className="detail-item">• 주소: {golfInfo.addr}</p>
-          {/* <p className="detail-item">• 지역: {golfInfo.area}</p> */}
           <p className="detail-item">• 구분: {golfInfo.detailedType}</p>
-          {/* <p className="detail-item">• 위도: {golfInfo.Latitude}</p>
-          <p className="detail-item">• 경도: {golfInfo.Longitude}</p> */}
+
+          {/* ✅ 총 홀 수 */}
+          <p className="detail-item">
+            • 총 홀 수: {18 + (golfInfo.addHole || 0)}홀
+          </p>
+
+          {/* ✅ 부지 면적 (있을 경우만) */}
+          {golfInfo.totalAreaSquareMeters && (
+            <p className="detail-item">
+              • 부지 면적:{" "}
+              {Math.round(golfInfo.totalAreaSquareMeters).toLocaleString()}㎡
+            </p>
+          )}
         </section>
       )}
 
@@ -90,7 +100,7 @@ function DetailPages() {
         <WeatherNow weather={weather} />
       )}
 
-      {/* ✅ 플레이 가능 여부 */}
+      {/* 플레이 가능 여부 */}
       {Array.isArray(weather) && weather.length > 0 && (
         <PlayAbility weather={weather} />
       )}
@@ -103,9 +113,9 @@ function DetailPages() {
       )}
 
       {/* 추천 메시지 */}
-      {Array.isArray(weather) && weather.length > 0 && (
+      {/* {Array.isArray(weather) && weather.length > 0 && (
         <RecommendMsg weather={weather} />
-      )}
+      )} */}
     </div>
   );
 }
