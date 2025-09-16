@@ -1,6 +1,7 @@
 function PlayAbility({ weather }) {
   const now = weather[0];
-  const playableText = now.playable === 1 ? "✔️ 플레이 가능" : "❌ 플레이 불가";
+  const playableText =
+    now.final_playable === 1 ? "✔️ 플레이 가능" : "❌ 플레이 불가";
 
   let cleanSummary = "";
   if (now.summary) {
