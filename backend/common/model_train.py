@@ -130,6 +130,14 @@ def compute_fog_index_playable_rule(df):
         axis=1
     )
 
+    # --- 가시거리 추정 ---
+    # 안개지수(fog_index)와 강수량(precipitation) 기반으로 visibility 계산
+    # 안개 많고 강수량 많을수록 visibility 감소
+    if "precipitation" not in df.columns:
+        df["precipitation"] = 0.0
+    df["visibility"] = 10000 - (df["fog_index"] * 50) - (df["precipitation"] * 100)
+    df["visibility"] = df["visibility"].clip(lower=500)  # 최소 500m
+
     # --- rule 기반 골프 가능 여부 ---
     # 💡 강수량도 포함 (예: precipitation < 10mm)
     df["playable_rule"] = df.apply(
@@ -214,6 +222,7 @@ def compute_fog_index_playable_rule(df):
             f"습도 {r.humidity:.0f}%, "
             f"풍속 {r.wind_speed:.1f}m/s, "
             f"강수량 {r.precipitation:.1f}mm, "
+            f"가시거리 {r.visibility:.0f}m, "
             f"안개지수 {r.fog_index:.1f} "
             f"→ 골프장: {'가능' if r.final_playable==1 else '불가'} "
             f"(ML:{r.playable_prob_ml:.2f}, DL:{r.playable_prob_dl:.2f})"
@@ -226,29 +235,26 @@ def compute_fog_index_playable_rule(df):
     df["summary"] = summary
     df = df.reset_index(drop=True)
 
-        # --- 반환값 컬럼 설명 ---
-    """
-    df (DataFrame) 컬럼:
-        id                : int   -> 순번 (1부터 시작)
-        time              : datetime -> 예측 시간 (한국 시간, tz=Asia/Seoul)
-        temperature       : float -> 기온(℃)
-        humidity          : float -> 상대습도(%)
-        wind_speed        : float -> 풍속(m/s)
-        visibility        : float -> 가시거리(m), 기본 10000m
-        precip_prob       : float -> 강수 확률(%)
-        precipitation     : float -> 강수량(mm)
-        fog_index         : float -> 안개 지수(0~100, 높을수록 안개 심함)
-        playable_rule     : int   -> Rule 기반 골프 가능 여부 (0=불가,1=가능)
-        playable_prob_ml  : float -> ML(RandomForest) 예측 확률(0~1)
-        playable_ml       : int   -> ML(RandomForest) 예측 결과 (0=불가,1=가능)
-        playable_prob_dl  : float -> DL(NeuralNetwork) 예측 확률(0~1)
-        playable_dl       : int   -> DL(NeuralNetwork) 예측 결과 (0=불가,1=가능)
-        final_playable    : int   -> 최종 골프 가능 여부 (0=불가,1=가능), playable_rule OR playable_ml
-        summary           : str   -> 사람이 읽기 좋은 요약 문자열
-                               (HTML 출력 대응 위해 줄바꿈은 <br> 로 변환됨)
-                               예시:
-                               "2025-09-13 14:00:00 — 기온 25.0°C, 습도 65%, 풍속 4.0m/s, 강수량 2.5mm, 안개지수 12.0 → 골프장: 가능 (ML:0.92)<br>👉 기온 적당, 바람 약함"
-    """
+    # --- 최종 반환 DataFrame df ---
+    # df 컬럼 설명:
+    # time              : datetime -> 예측 시간 (한국 시간, tz=Asia/Seoul)
+    # temperature       : float    -> 기온(℃)
+    # humidity          : float    -> 상대습도(%)
+    # wind_speed        : float    -> 풍속(m/s)
+    # visibility        : float    -> 가시거리(m), 기본 10000m
+    # precip_prob       : float    -> 강수 확률(%), 초단기예보에는 0.0
+    # precipitation     : float    -> 1시간 강수량(mm), RN1 기준
+    # precip_type       : int      -> 강수 형태, PTY 기준 (0=없음, 1=비, 2=비/눈, 3=눈, 4=소나기)
+    # fog_index         : float    -> 안개 지수(0~100, 높을수록 안개 심함)
+    # playable_rule     : int      -> Rule 기반 골프 가능 여부 (0=불가, 1=가능)
+    # playable_prob_ml  : float    -> ML(RandomForest) 예측 확률(0~1)
+    # playable_ml       : int      -> ML(RandomForest) 예측 결과 (0=불가, 1=가능)
+    # playable_prob_dl  : float    -> DL(NeuralNetwork) 예측 확률(0~1)
+    # playable_dl       : int      -> DL(NeuralNetwork) 예측 결과 (0=불가, 1=가능)
+    # final_playable    : int      -> 최종 골프 가능 여부 (0=불가, 1=가능), playable_rule OR playable_ml
+    # summary           : str      -> 사람이 읽기 좋은 요약 문자열 (HTML 줄바꿈 <br> 적용)
+    # 예시:
+    # "2025-09-16 14:00:00 — 기온 26.0°C, 습도 85%, 풍속 2.0m/s, 강수량 7.0mm, 안개지수 12.0 → 골프장: 불가 (ML:0.12, DL:0.05)<br>👉 기온 적당, 바람 약함, 강수 주의"
     return df
 
 # --- 조건별 멘트 함수 정의 ---
