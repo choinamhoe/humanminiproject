@@ -8,11 +8,10 @@ import "./mapview.css";
 
 const MapView = () => {
   const [geoData, setGeoData] = useState(null);
-  const [filteredLocations, setFilteredLocations] = useState([]);
+  const [filteredLocations, setFilteredLocations] = useState([]); // ⬅️ 지도에 표시될 마커 데이터
   const [selectedRegion, setSelectedRegion] = useState(null);
   const [mapInstance, setMapInstance] = useState(null);
-  const [areaIds, setAreaIds] = useState([]);
-  const [weatherMap, setWeatherMap] = useState({});
+  const [areaIds, setAreaIds] = useState([]); // ⬅️ 전국 데이터 저장용 (마커에는 안 씀)
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const mapRef = useRef();
@@ -30,7 +29,7 @@ const MapView = () => {
       });
   }, []);
 
-  // ✅ 전체 데이터 불러오기
+  // ✅ 전국 데이터 불러오기 (필터링용으로만 저장)
   useEffect(() => {
     const fetchData = async () => {
       try {
@@ -38,23 +37,18 @@ const MapView = () => {
         if (res?.data?.golfList?.golfInfo) {
           const data = res.data.golfList.golfInfo;
           const parsed = data
-            .map((item) => {
-              const lat = parseFloat(item.Latitude);
-              const lng = parseFloat(item.Longitude);
-
-              return {
-                id: item.id,
-                name: item.storeName,
-                latitude: lat,
-                longitude: lng,
-                address: item.addr,
-                area: item.area,
-                imageUrl: item.imageUrl,
-              };
-            })
+            .map((item) => ({
+              id: item.id,
+              name: item.storeName,
+              latitude: parseFloat(item.Latitude),
+              longitude: parseFloat(item.Longitude),
+              address: item.addr,
+              area: item.area,
+              imageUrl: item.imageUrl,
+            }))
             .filter((loc) => !isNaN(loc.latitude) && !isNaN(loc.longitude));
 
-          setAreaIds(parsed);
+          setAreaIds(parsed); // 전국 데이터 저장
         } else {
           setError("골프장 데이터를 불러오지 못했습니다.");
         }
@@ -68,93 +62,25 @@ const MapView = () => {
     fetchData();
   }, []);
 
-  // ✅ 지역 클릭 시 해당 골프장의 날씨 불러오기
-  const fetchWeatherForLocations = async (locations) => {
-    const weatherData = {};
-    for (const loc of locations) {
-      try {
-        const res = await axios.post("http://192.168.0.38:8000/detail", {
-          id: loc.id,
-        });
-        const weatherList = res.data?.golfDetail?.golfCurrentWeather || [];
-        if (weatherList.length > 0) {
-          // 현재 시간과 가장 가까운 데이터 선택
-          const now = new Date();
-          let closest = weatherList[0];
-          let minDiff = Math.abs(new Date(weatherList[0].time) - now);
-
-          for (const w of weatherList) {
-            const diff = Math.abs(new Date(w.time) - now);
-            if (diff < minDiff) {
-              closest = w;
-              minDiff = diff;
-            }
-          }
-          weatherData[loc.id] = closest;
-        }
-      } catch (err) {
-        console.error(`❌ 날씨 불러오기 오류 (골프장 ${loc.id}):`, err);
-      }
-    }
-    setWeatherMap(weatherData);
-  };
-
-  // ✅ 날씨 점수 계산 (가중치 방식)
-  const calculateScore = (weather) => {
-    if (!weather) return 0;
-
-    let score = 0;
-    // 기온 (20~27도 가장 적합)
-    const temp = parseFloat(weather.temperature);
-    if (temp >= 20 && temp <= 27) score += 30;
-    else if (temp >= 15 && temp <= 30) score += 20;
-    else score += 5;
-
-    // 습도 (40~70% 적합)
-    const hum = parseFloat(weather.humidity);
-    if (hum >= 40 && hum <= 70) score += 25;
-    else if (hum >= 30 && hum <= 80) score += 15;
-    else score += 5;
-
-    // 풍속 (0~5m/s 적합)
-    const wind = parseFloat(weather.wind_speed);
-    if (wind <= 5) score += 20;
-    else if (wind <= 8) score += 10;
-    else score += 3;
-
-    // 강수 확률
-    const rain = parseFloat(weather.precip_prob);
-    if (rain < 20) score += 25;
-    else if (rain < 50) score += 10;
-    else score += 0;
-
-    return score; // 총합: 0 ~ 100
-  };
-
-  // ✅ 깃발 색상 선택
-  const getFlagIcon = (score) => {
-    let iconUrl = process.env.PUBLIC_URL + "/red.png";
-    if (score >= 70) iconUrl = process.env.PUBLIC_URL + "/green.png";
-    else if (score >= 40) iconUrl = process.env.PUBLIC_URL + "/yellow.png";
-
-    return new L.Icon({
-      iconUrl,
+  // ✅ 깃발 아이콘 (빨간색 고정)
+  const getFlagIcon = () =>
+    new L.Icon({
+      iconUrl: process.env.PUBLIC_URL + "/red.png",
       iconSize: [30, 30],
       iconAnchor: [15, 30],
       popupAnchor: [0, -28],
     });
-  };
 
   // ✅ 초기화 버튼
   const handleReset = () => {
     if (mapInstance) {
       mapInstance.setView([36.5, 127.5], 7);
       setSelectedRegion(null);
-      setFilteredLocations([]);
+      setFilteredLocations([]); // 마커 초기화
     }
   };
 
-  // ✅ 지역명 보정 함수
+  // ✅ 지역명 보정
   const normalizeArea = (name) => {
     if (!name) return "";
     return name
@@ -186,7 +112,6 @@ const MapView = () => {
       </div>
     );
   }
-
   if (error) {
     return <div style={{ padding: "20px", color: "red" }}>{error}</div>;
   }
@@ -212,44 +137,31 @@ const MapView = () => {
           attribution="&copy; OpenStreetMap contributors"
         />
 
-        {/* ✅ 선택된 지역의 골프장 마커 */}
-        {filteredLocations.map((loc, idx) => {
-          const weather = weatherMap[loc.id];
-          const score = calculateScore(weather);
-          return (
-            <Marker
-              key={idx}
-              position={[loc.latitude, loc.longitude]}
-              icon={getFlagIcon(score)}
-            >
-              <Popup>
-                <div className="popup-card">
-                  <h3>{loc.name}</h3>
-                  <p>{loc.address}</p>
-                  {weather && (
-                    <>
-                      <p>기온: {weather.temperature}°C</p>
-                      <p>습도: {weather.humidity}%</p>
-                      <p>풍속: {weather.wind_speed}m/s</p>
-                      <p>강수확률: {weather.precip_prob}%</p>
-                      <p>→ 점수: {score}</p>
-                    </>
-                  )}
-                  <img
-                    src={loc.imageUrl || process.env.PUBLIC_URL + "/샘플.jpg"}
-                    alt={loc.name}
-                    style={{
-                      width: "100%",
-                      marginTop: "8px",
-                      cursor: "pointer",
-                    }}
-                    onClick={() => navigate(`/detail/${loc.id}`)}
-                  />
-                </div>
-              </Popup>
-            </Marker>
-          );
-        })}
+        {/* ✅ 선택된 지역의 골프장 마커 (filteredLocations만 사용) */}
+        {filteredLocations.map((loc, idx) => (
+          <Marker
+            key={idx}
+            position={[loc.latitude, loc.longitude]}
+            icon={getFlagIcon()} // 항상 빨간 깃발
+          >
+            <Popup>
+              <div className="popup-card">
+                <h3>{loc.name}</h3>
+                <p>{loc.address}</p>
+                <img
+                  src={loc.imageUrl || process.env.PUBLIC_URL + "/샘플.jpg"}
+                  alt={loc.name}
+                  style={{
+                    width: "100%",
+                    marginTop: "8px",
+                    cursor: "pointer",
+                  }}
+                  onClick={() => navigate(`/detail/${loc.id}`)}
+                />
+              </div>
+            </Popup>
+          </Marker>
+        ))}
 
         {/* ✅ GeoJSON */}
         {geoData && areaIds.length > 0 && (
@@ -271,34 +183,63 @@ const MapView = () => {
                   }
             }
             onEachFeature={(feature, layer) => {
-              layer.on({
-                click: async () => {
-                  const rawArea = feature.properties?.CTP_KOR_NM;
-                  setSelectedRegion(rawArea);
+              const rawArea = feature.properties?.CTP_KOR_NM;
 
-                  try {
-                    const parsed = areaIds.filter(
-                      (item) =>
-                        item.area &&
-                        normalizeArea(item.area) === normalizeArea(rawArea)
-                    );
+              // ✅ Hover (명도 어둡게 + 라벨 표시)
+              layer.on("mouseover", () => {
+                layer.setStyle({
+                  weight: 3,
+                  color: "#f7f3f3ff",
+                  fillColor: "#f5f5f5ff",
+                  fillOpacity: 0.6,
+                });
 
-                    setFilteredLocations(parsed);
-                    await fetchWeatherForLocations(parsed);
+                const center = layer.getBounds().getCenter();
+                layer
+                  .bindTooltip(rawArea, {
+                    permanent: true,
+                    direction: "center",
+                    className: "region-label",
+                  })
+                  .openTooltip(center);
+              });
 
-                    if (mapRef.current && parsed.length > 0) {
-                      const bounds = parsed.map((loc) => [
-                        loc.latitude,
-                        loc.longitude,
-                      ]);
-                      mapRef.current.fitBounds(bounds);
-                    }
+              // ✅ Hover 해제
+              layer.on("mouseout", () => {
+                layer.setStyle({
+                  color: "#204172ff",
+                  weight: 2,
+                  fillColor: "#204172ff",
+                  fillOpacity: 0.2,
+                });
+                layer.closeTooltip();
+              });
 
-                    layer.bindPopup(`<b>${rawArea}</b>`).openPopup();
-                  } catch (err) {
-                    console.error("❌ 지역별 필터링 오류:", err);
+              // ✅ 클릭 시 해당 지역만 필터링 → 깃발 표시
+              layer.on("click", async () => {
+                setSelectedRegion(rawArea);
+
+                try {
+                  const parsed = areaIds.filter(
+                    (item) =>
+                      item.area &&
+                      normalizeArea(item.area) === normalizeArea(rawArea)
+                  );
+
+                  setFilteredLocations(parsed); // ⬅️ 이거만 화면에 찍힘
+
+                  if (mapRef.current && parsed.length > 0) {
+                    const bounds = parsed.map((loc) => [
+                      loc.latitude,
+                      loc.longitude,
+                    ]);
+                    mapRef.current.fitBounds(bounds);
                   }
-                },
+
+                  layer.bindPopup(`<b>${rawArea}</b>`).openPopup();
+                } catch (err) {
+                  console.error("❌ 지역별 필터링 오류:", err);
+                }
               });
             }}
           />
