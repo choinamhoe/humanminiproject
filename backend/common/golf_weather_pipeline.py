@@ -95,17 +95,19 @@ def fetch_weather_kma(lat, lon):
     base_date = now.strftime("%Y%m%d")
     base_time = (now.replace(minute=0, second=0) - pd.Timedelta(hours=1)).strftime("%H%M")
 
+    # --- 테스트 모드 (SERVICE_KEY가 없는 경우 랜덤 데이터 생성) ---
     if SERVICE_KEY is None:
         hours = pd.date_range(start=now, periods=6, freq="H", tz=seoul_tz)
         rng = np.random.default_rng(123)
         df = pd.DataFrame({
             "time": hours,
             "temperature": 10 + 5*rng.normal(size=len(hours)),
-            "humidity": np.clip(60 + 20*rng.normal(size=len(hours)),0,100),
-            "wind_speed": np.clip(3 + 2*rng.normal(size=len(hours)),0,20),
+            "humidity": np.clip(60 + 20*rng.normal(size=len(hours)), 0, 100),
+            "wind_speed": np.clip(3 + 2*rng.normal(size=len(hours)), 0, 20),
             "visibility": 10000,
-            "precip_prob": np.clip(5 + 20*rng.normal(size=len(hours)),0,100),
-            "precipitation": np.clip(0 + 10*rng.normal(size=len(hours)),0,100),  # 강수량 추가
+            "precip_prob": 0.00,   # 초단기예보에는 없음
+            "precipitation": np.clip(0 + 10*rng.normal(size=len(hours)), 0, 100),
+            "precip_type": 0         # 없음
         })
         return df
 
@@ -122,9 +124,7 @@ def fetch_weather_kma(lat, lon):
     df_raw = pd.DataFrame(items)
     df_raw["datetime"] = pd.to_datetime(df_raw["fcstDate"] + df_raw["fcstTime"], format="%Y%m%d%H%M").dt.tz_localize(seoul_tz)
     pivot = df_raw.pivot(index="datetime", columns="category", values="fcstValue").reset_index()
-   
-    # 각 컬럼 존재 여부 확인 후 DataFrame 생성
-    # DataFrame 생성
+    # --- 초단기예보에 맞게 DF 생성 ---
     try:
         df = pd.DataFrame({
             "time": pivot["datetime"],
@@ -132,11 +132,12 @@ def fetch_weather_kma(lat, lon):
             "humidity": pivot["REH"].astype(float) if "REH" in pivot.columns else 0.0,
             "wind_speed": pivot["WSD"].astype(float) if "WSD" in pivot.columns else 0.0,
             "visibility": 10000,
-            "precip_prob": pivot["POP"].astype(float) if "POP" in pivot.columns else 0.0,
-            "precipitation": pivot["PCP"].apply(parse_precip) if "PCP" in pivot.columns else 0.0
+            "precip_prob": 0.00,  # 초단기예보에는 POP 없음
+            "precipitation": pivot["RN1"].apply(parse_precip) if "RN1" in pivot.columns else 0.0,
+            "precip_type": pivot["PTY"].astype(int) if "PTY" in pivot.columns else 0
         })
-    except:
-        print("pivot error")
+    except Exception as e:
+        print("pivot error:", e)
     return df
 
 # --- 외부 호출용 함수 ---
@@ -188,7 +189,7 @@ def fetch_weather_kma_long(lat, lon):
     resp.raise_for_status()
     data = resp.json()
         
-    # print(f"fetch_weather_kma_long 응답 data : {data}")
+    #print(f"fetch_weather_kma_long 응답 data : {data}")
     if data['response']['header']['resultCode'] != '00':
         raise ValueError(f"단기예보 API 오류: {data['response']['header']['resultMsg']}")
 
@@ -204,7 +205,8 @@ def fetch_weather_kma_long(lat, lon):
             "wind_speed": pivot["WSD"].astype(float) if "WSD" in pivot.columns else 0.0,
             "visibility": 10000,
             "precip_prob": pivot["POP"].astype(float) if "POP" in pivot.columns else 0.0,
-            "precipitation": pivot["PCP"].apply(parse_precip) if "PCP" in pivot.columns else 0.0
+            "precipitation": pivot["PCP"].apply(parse_precip) if "PCP" in pivot.columns else 0.0,
+            "precip_type": 0         # 없음
         })
     except:
         print("pivot error")
