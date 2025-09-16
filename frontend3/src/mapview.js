@@ -8,15 +8,20 @@ import "./mapview.css";
 
 const MapView = () => {
   const [geoData, setGeoData] = useState(null);
-  const [filteredLocations, setFilteredLocations] = useState([]); // ⬅️ 지도에 표시될 마커 데이터
+  const [filteredLocations, setFilteredLocations] = useState([]);
   const [selectedRegion, setSelectedRegion] = useState(null);
   const [mapInstance, setMapInstance] = useState(null);
-  const [areaIds, setAreaIds] = useState([]); // ⬅️ 전국 데이터 저장용 (마커에는 안 씀)
+  const [areaIds, setAreaIds] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [searchResults, setSearchResults] = useState([]);
+  const [hoveredItem, setHoveredItem] = useState(null); // 🔹 Hover 상태
   const mapRef = useRef();
 
   const navigate = useNavigate();
+  // ✅ 추가: 선택된 골프장
+  const [selectedGolf, setSelectedGolf] = useState(null);
 
   // ✅ GeoJSON 불러오기
   useEffect(() => {
@@ -29,7 +34,7 @@ const MapView = () => {
       });
   }, []);
 
-  // ✅ 전국 데이터 불러오기 (필터링용으로만 저장)
+  // ✅ 전국 데이터 불러오기
   useEffect(() => {
     const fetchData = async () => {
       try {
@@ -47,8 +52,7 @@ const MapView = () => {
               imageUrl: item.imageUrl,
             }))
             .filter((loc) => !isNaN(loc.latitude) && !isNaN(loc.longitude));
-
-          setAreaIds(parsed); // 전국 데이터 저장
+          setAreaIds(parsed);
         } else {
           setError("골프장 데이터를 불러오지 못했습니다.");
         }
@@ -62,7 +66,7 @@ const MapView = () => {
     fetchData();
   }, []);
 
-  // ✅ 깃발 아이콘 (빨간색 고정)
+  // ✅ 깃발 아이콘
   const getFlagIcon = () =>
     new L.Icon({
       iconUrl: process.env.PUBLIC_URL + "/red.png",
@@ -71,12 +75,28 @@ const MapView = () => {
       popupAnchor: [0, -28],
     });
 
-  // ✅ 초기화 버튼
+  // ✅ hover 전용 아이콘
+  const getHoverIcon = () =>
+    new L.Icon({
+      iconUrl: process.env.PUBLIC_URL + "/red.png",
+      iconSize: [35, 35],
+      iconAnchor: [17, 35],
+    });
+  // ✅ 선택된 노란 깃발 아이콘
+  const yellowFlagIcon = new L.Icon({
+    iconUrl: process.env.PUBLIC_URL + "/yellow.png",
+    iconSize: [30, 30],
+    iconAnchor: [15, 30],
+    popupAnchor: [0, -28],
+  });
+
   const handleReset = () => {
     if (mapInstance) {
-      mapInstance.setView([36.5, 127.5], 7);
-      setSelectedRegion(null);
-      setFilteredLocations([]); // 마커 초기화
+      mapInstance.setView([36.5, 127.5], 7); // 지도 초기 위치
+      setSelectedRegion(null); // 지역 선택 해제
+      setFilteredLocations([]); // 마커 제거
+      setSelectedGolf(null); // state 초기화
+      navigate("/map"); // ✅ 라우팅도 초기화
     }
   };
 
@@ -100,6 +120,79 @@ const MapView = () => {
       .trim();
   };
 
+  // ✅ 검색 처리 (검색 API 사용)
+  const handleSearch = async (term) => {
+    setSearchTerm(term);
+
+    if (term.length > 0) {
+      try {
+        const res = await axios.post("http://192.168.0.38:8000/search", {
+          search: term,
+        });
+
+        if (res?.data?.golfList?.golfInfo) {
+          const data = res.data.golfList.golfInfo;
+          const parsed = data.map((item) => ({
+            id: item.id,
+            name: item.storeName,
+            latitude: parseFloat(item.Latitude),
+            longitude: parseFloat(item.Longitude),
+            address: item.addr,
+            area: item.area,
+            imageUrl: item.imageUrl,
+          }));
+          setSearchResults([{ type: "골프장", items: parsed }]);
+        } else {
+          setSearchResults([]);
+        }
+      } catch (err) {
+        console.error("❌ 검색 API 오류:", err);
+        setSearchResults([]);
+      }
+    } else {
+      setSearchResults([]);
+    }
+  };
+
+  // ✅ 검색 결과 클릭
+  const handleResultClick = (item, type) => {
+    if (type === "골프장") {
+      setFilteredLocations([item]);
+      if (mapRef.current) {
+        mapRef.current.setView([item.latitude, item.longitude], 12);
+      }
+      navigate(`/detail/${item.id}`);
+    } else {
+      const parsed = areaIds.filter(
+        (loc) =>
+          loc.area.includes(searchTerm) || loc.address.includes(searchTerm)
+      );
+      setFilteredLocations(parsed);
+
+      if (mapRef.current && parsed.length > 0) {
+        const bounds = parsed.map((loc) => [loc.latitude, loc.longitude]);
+        mapRef.current.fitBounds(bounds);
+      }
+    }
+
+    setSearchResults([]);
+    setSearchTerm("");
+  };
+
+  // ✅ 검색어 하이라이트
+  const highlightMatch = (text, term) => {
+    const parts = text.split(new RegExp(`(${term})`, "gi"));
+    return parts.map((part, i) =>
+      part.toLowerCase() === term.toLowerCase() ? (
+        <strong key={i} style={{ color: "#007bff" }}>
+          {part}
+        </strong>
+      ) : (
+        part
+      )
+    );
+  };
+
   // ✅ 로딩/에러 처리
   if (loading) {
     return (
@@ -118,9 +211,98 @@ const MapView = () => {
 
   return (
     <div className="map-wrapper" style={{ position: "relative" }}>
-      <div className="map-header">
+      <div className="map-header" style={{ textAlign: "center" }}>
         <h2>📍 대한민국 골프장 지도</h2>
         <p>지역을 클릭하면 해당 지역의 골프장이 표시됩니다.</p>
+
+        {/* ✅ 검색창 */}
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "center",
+            marginTop: "5px",
+          }}
+        >
+          <div style={{ position: "relative", width: "350px" }}>
+            <input
+              type="text"
+              placeholder="지역명 또는 골프장명 검색"
+              value={searchTerm}
+              onChange={(e) => handleSearch(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && handleSearch(searchTerm)} // 엔터키 검색
+              style={{
+                width: "85%",
+                padding: "8px 35px 8px 12px",
+                borderRadius: "20px",
+                border: "1px solid #ccc",
+                boxShadow: "0 2px 6px rgba(0,0,0,0.1)",
+                fontSize: "14px",
+              }}
+            />
+            <span
+              style={{
+                position: "absolute",
+                right: "12px",
+                top: "50%",
+                transform: "translateY(-50%)",
+                color: "#888",
+                cursor: "pointer",
+              }}
+              onClick={() => handleSearch(searchTerm)} // 돋보기 클릭 시 검색 실행
+            >
+              🔍
+            </span>
+
+            {/* 자동완성 리스트 */}
+            {searchResults.some((group) => group.items.length > 0) && (
+              <ul
+                style={{
+                  listStyle: "none",
+                  margin: 0,
+                  padding: "5px",
+                  background: "white",
+                  border: "1px solid #ccc",
+                  borderTop: "none",
+                  width: "100%",
+                  maxHeight: "200px",
+                  overflowY: "auto",
+                  position: "absolute",
+                  zIndex: 1000,
+                }}
+              >
+                {searchResults.map(
+                  (group) =>
+                    group.items.length > 0 && (
+                      <li key={group.type}>
+                        <div style={{ fontWeight: "bold", margin: "4px 0" }}>
+                          {group.type}
+                        </div>
+                        {group.items.map((item) => (
+                          <div
+                            key={item.id}
+                            style={{
+                              padding: "6px",
+                              cursor: "pointer",
+                              backgroundColor:
+                                hoveredItem?.id === item.id
+                                  ? "#e6f2ff"
+                                  : "transparent",
+                            }}
+                            onMouseEnter={() => setHoveredItem(item)}
+                            onMouseLeave={() => setHoveredItem(null)}
+                            onClick={() => handleResultClick(item, group.type)}
+                          >
+                            {highlightMatch(item.name, searchTerm)} ({item.area}
+                            )
+                          </div>
+                        ))}
+                      </li>
+                    )
+                )}
+              </ul>
+            )}
+          </div>
+        </div>
       </div>
 
       <MapContainer
@@ -137,33 +319,48 @@ const MapView = () => {
           attribution="&copy; OpenStreetMap contributors"
         />
 
-        {/* ✅ 선택된 지역의 골프장 마커 (filteredLocations만 사용) */}
         {filteredLocations.map((loc, idx) => (
           <Marker
             key={idx}
             position={[loc.latitude, loc.longitude]}
-            icon={getFlagIcon()} // 항상 빨간 깃발
+            icon={selectedGolf?.id === loc.id ? yellowFlagIcon : getFlagIcon()} // ✅ 선택된 골프장은 노란색
+            eventHandlers={{
+              click: () => setSelectedGolf(loc), // ✅ 클릭 시 노란색으로 변경
+            }}
           >
             <Popup>
               <div className="popup-card">
                 <h3>{loc.name}</h3>
                 <p>{loc.address}</p>
-                <img
-                  src={loc.imageUrl || process.env.PUBLIC_URL + "/샘플.jpg"}
-                  alt={loc.name}
+                <p
                   style={{
-                    width: "100%",
                     marginTop: "8px",
+                    color: "#007bff",
                     cursor: "pointer",
+                    textDecoration: "underline",
+                    fontWeight: "bold",
                   }}
-                  onClick={() => navigate(`/detail/${loc.id}`)}
-                />
+                  onClick={() => {
+                    setSelectedGolf(loc); // 패널 열릴 때도 선택 상태 유지
+                    navigate(`/detail/${loc.id}`);
+                  }}
+                >
+                  👉 실시간 골프장 정보 열기
+                </p>
               </div>
             </Popup>
           </Marker>
         ))}
 
-        {/* ✅ GeoJSON */}
+        {/* ✅ Hover된 검색 결과 강조 마커 */}
+        {hoveredItem && (
+          <Marker
+            position={[hoveredItem.latitude, hoveredItem.longitude]}
+            icon={getHoverIcon()}
+          />
+        )}
+
+        {/* GeoJSON */}
         {geoData && areaIds.length > 0 && (
           <GeoJSON
             data={geoData}
@@ -185,7 +382,7 @@ const MapView = () => {
             onEachFeature={(feature, layer) => {
               const rawArea = feature.properties?.CTP_KOR_NM;
 
-              // ✅ Hover (명도 어둡게 + 라벨 표시)
+              // 마우스 오버 이벤트
               layer.on("mouseover", () => {
                 layer.setStyle({
                   weight: 3,
@@ -194,17 +391,28 @@ const MapView = () => {
                   fillOpacity: 0.6,
                 });
 
-                const center = layer.getBounds().getCenter();
+                // ✅ 특정 지역만 좌표 강제 지정
+                let tooltipPosition;
+                if (rawArea === "경상북도") {
+                  tooltipPosition = L.latLng(36.5, 128.7); // 경북 → 경도 줄여서 왼쪽 이동
+                } else if (rawArea === "충청북도") {
+                  tooltipPosition = L.latLng(36.8, 127.6); // 충북 → 경도 줄여서 왼쪽 이동
+                } else {
+                  tooltipPosition = layer.getBounds().getCenter(); // 나머지는 기본값
+                }
+
+                // ✅ 기존 툴팁 제거 후 다시 바인딩
+                layer.unbindTooltip();
                 layer
                   .bindTooltip(rawArea, {
                     permanent: true,
                     direction: "center",
                     className: "region-label",
                   })
-                  .openTooltip(center);
+                  .openTooltip(tooltipPosition);
               });
 
-              // ✅ Hover 해제
+              // 마우스 아웃 이벤트
               layer.on("mouseout", () => {
                 layer.setStyle({
                   color: "#204172ff",
@@ -215,7 +423,7 @@ const MapView = () => {
                 layer.closeTooltip();
               });
 
-              // ✅ 클릭 시 해당 지역만 필터링 → 깃발 표시
+              // 클릭 이벤트
               layer.on("click", async () => {
                 setSelectedRegion(rawArea);
 
@@ -226,7 +434,7 @@ const MapView = () => {
                       normalizeArea(item.area) === normalizeArea(rawArea)
                   );
 
-                  setFilteredLocations(parsed); // ⬅️ 이거만 화면에 찍힘
+                  setFilteredLocations(parsed);
 
                   if (mapRef.current && parsed.length > 0) {
                     const bounds = parsed.map((loc) => [
@@ -246,7 +454,7 @@ const MapView = () => {
         )}
       </MapContainer>
 
-      {/* 🔘 초기화 버튼 */}
+      {/* 초기화 버튼 */}
       <div
         style={{
           position: "absolute",
