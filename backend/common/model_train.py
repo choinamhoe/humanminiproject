@@ -26,34 +26,44 @@ def compute_fog_index_row(T, RH, W, V):
     fog_raw = 100 * (0.4*vis_score + 0.3*rh_score + 0.2*delta_score + 0.1*wind_score)
     return float(np.clip(fog_raw, 0, 100))
 
-# --- 합성 학습 데이터 ---
+# ---------------------------
+# 합성 학습 데이터 생성
+# ---------------------------
 def generate_synthetic_training_data(n_samples=2000, seed=123):
     rng = np.random.default_rng(seed)
-    T = 10 + 10*rng.normal(size=n_samples)
-    RH = np.clip(60 + 20*rng.normal(size=n_samples), 0, 100)
-    W = np.clip(3 + 2*rng.normal(size=n_samples), 0, 20)
-    V = np.clip(10000 + 5000*rng.normal(size=n_samples), 0, 20000)
-    precip_prob = np.clip(5 + 40*rng.normal(size=n_samples), 0, 100)
+    T = 10 + 10*rng.normal(size=n_samples)  # 기온
+    RH = np.clip(60 + 20*rng.normal(size=n_samples), 0, 100)  # 습도
+    W = np.clip(3 + 2*rng.normal(size=n_samples), 0, 20)      # 풍속
+    V = np.clip(10000 + 5000*rng.normal(size=n_samples), 0, 20000)  # 가시거리
+    precip_prob = np.clip(5 + 40*rng.normal(size=n_samples), 0, 100)  # 강수 확률
+    precipitation = np.clip(2 * rng.normal(size=n_samples), 0, 50)    # 강수량(mm)
+
     df = pd.DataFrame({
         "temperature": T,
         "humidity": RH,
         "wind_speed": W,
         "visibility": V,
-        "precip_prob": precip_prob
+        "precip_prob": precip_prob,
+        "precipitation": precipitation
     })
+
     df["fog_index"] = df.apply(
         lambda r: compute_fog_index_row(r.temperature, r.humidity, r.wind_speed, r.visibility),
         axis=1
     )
+
+    # playable 정의: 강수확률 <30, 강수량 <10mm, 풍속 <10, 안개지수 <40
     df["playable"] = df.apply(
-        lambda r: 1 if (r.precip_prob < 30 and r.wind_speed < 10 and r.fog_index < 40) else 0,
+        lambda r: 1 if (r.precip_prob < 30 and r.precipitation < 10 and r.wind_speed < 10 and r.fog_index < 40) else 0,
         axis=1
     )
     return df
 
-# --- ML 학습 ---
+# ---------------------------
+# ML 학습 (RandomForest)
+# ---------------------------
 def train_ml_model(weather_df):
-    features = ["temperature","humidity","wind_speed","visibility","precip_prob","fog_index"]
+    features = ["temperature","humidity","wind_speed","visibility","precip_prob","precipitation","fog_index"]
     target = "playable"
 
     X = weather_df[features].values
@@ -63,18 +73,21 @@ def train_ml_model(weather_df):
 
     scaler = StandardScaler().fit(Xtr)
     Xtr_s = scaler.transform(Xtr)
-    Xte_s = scaler.transform(Xte)
 
     clf = RandomForestClassifier(n_estimators=200, random_state=42)
     clf.fit(Xtr_s, ytr)
 
     joblib.dump(scaler, "scaler.joblib")
     joblib.dump(clf, "rf_playable.joblib")
+
+    print("✅ ML 모델 학습 완료 — scaler.joblib, rf_playable.joblib 저장됨")
     return clf
 
-# --- DL 학습 ---
+# ---------------------------
+# DL 학습 (Keras NN)
+# ---------------------------
 def train_deep_model(weather_df):
-    features = ["temperature","humidity","wind_speed","visibility","precip_prob","fog_index"]
+    features = ["temperature","humidity","wind_speed","visibility","precip_prob","precipitation","fog_index"]
     target = "playable"
 
     X = weather_df[features].values.astype(np.float32)
@@ -97,78 +110,86 @@ def train_deep_model(weather_df):
 
     model.save("deep_playable.h5")
     joblib.dump(scaler, "scaler_dl.joblib")
+
+    print("✅ DL 모델 학습 완료 — deep_playable.h5, scaler_dl.joblib 저장됨")
     return model
 
 def compute_fog_index_playable_rule(df):
-    #print(f"compute_fog_index_playable_rule start df : {df}")
+    """
+    골프장 단기 예보 DataFrame을 받아서:
+    1) 안개 지수 계산
+    2) Rule 기반 playable 계산
+    3) ML/DL 예측
+    4) 최종 playable 결정
+    5) summary 생성
+    """
+
     # --- 안개지수 계산 ---
     df["fog_index"] = df.apply(
         lambda r: compute_fog_index_row(r.temperature, r.humidity, r.wind_speed, r.visibility),
         axis=1
     )
-    #print(f"compute_fog_index_playable_rule after compute_fog_index_row df : {df}")
-    
+
     # --- rule 기반 골프 가능 여부 ---
+    # 💡 강수량도 포함 (예: precipitation < 10mm)
     df["playable_rule"] = df.apply(
-        lambda r: 1 if (r.precip_prob < 30 and r.wind_speed < 10 and r.fog_index < 40) else 0,
+        lambda r: 1 if (r.precip_prob < 30 and r.precipitation < 10 and r.wind_speed < 10 and r.fog_index < 40) else 0,
         axis=1
     )
-    #print(f"compute_fog_index_playable_rule after playable_rule df : {df['playable_rule']}")
-    """
-    df (DataFrame) 컬럼:
-        id                : int   -> 순번 (1부터 시작)
-        time              : datetime -> 예측 시간 (한국 시간, tz=Asia/Seoul)
-        temperature       : float -> 기온(℃)
-        humidity          : float -> 상대습도(%)
-        wind_speed        : float -> 풍속(m/s)
-        visibility        : float -> 가시거리(m), 기본 10000m
-        precip_prob       : float -> 강수 확률(%)
-        precipitation     : float -> 강수량(mm)
-        fog_index         : float -> 안개 지수(0~100, 높을수록 안개 심함)
-        playable_rule     : int   -> Rule 기반 골프 가능 여부 (0=불가,1=가능)
-        playable_prob_ml  : float -> ML(RandomForest) 예측 확률(0~1)
-        playable_ml       : int   -> ML(RandomForest) 예측 결과 (0=불가,1=가능)
-        playable_prob_dl  : float -> DL(NeuralNetwork) 예측 확률(0~1)
-        playable_dl       : int   -> DL(NeuralNetwork) 예측 결과 (0=불가,1=가능)
-        final_playable    : int   -> 최종 골프 가능 여부 (0=불가,1=가능), playable_rule OR playable_ml
-        summary           : str   -> 사람이 읽기 좋은 요약 문자열
-                               (HTML 출력 대응 위해 줄바꿈은 <br> 로 변환됨)
-                               예시:
-                               "2025-09-13 14:00:00 — 기온 25.0°C, 습도 65%, 풍속 4.0m/s, 강수량 2.5mm, 안개지수 12.0 → 골프장: 가능 (ML:0.92)<br>👉 기온 적당, 바람 약함"
-    """
-    features = ["temperature","humidity","wind_speed","visibility","precip_prob","fog_index"]
+
+    # --- ML/DL 예측용 feature 리스트 ---
+    features = ["temperature", "humidity", "wind_speed", "visibility", "precip_prob", "precipitation", "fog_index"]
+
+    # 💡 예측용 df에 precipitation 컬럼이 없으면 0으로 생성
+    if "precipitation" not in df.columns:
+        df["precipitation"] = 0.0
 
     # --- ML 예측 ---
     try:
         scaler = joblib.load("scaler.joblib")
         clf = joblib.load("rf_playable.joblib")
-        Xs = scaler.transform(df[features].values)
-        df["playable_prob_ml"] = clf.predict_proba(Xs)[:,1]  # ML 예측 확률 (0~1)
-        df["playable_ml"] = (df["playable_prob_ml"] >= 0.5).astype(int)  # ML 예측 결과 (0=불가,1=가능)
-    except:
+
+        # 디버깅용 출력
+        print("ML scaler features:", len(scaler.mean_))
+        print("df features:", df[features].shape)
+
+        # feature mismatch 방지
+        Xs = df[features].values
+        if Xs.shape[1] != len(scaler.mean_):
+            raise ValueError(f"Feature mismatch: df has {Xs.shape[1]} features, scaler expects {len(scaler.mean_)}")
+
+        # ML 예측
+        Xs_s = scaler.transform(Xs)
+        df["playable_prob_ml"] = clf.predict_proba(Xs_s)[:, 1]
+        df["playable_ml"] = (df["playable_prob_ml"] >= 0.5).astype(int)
+    except Exception as e:
+        print("ML 예측 에러:", e)
         df["playable_prob_ml"] = np.nan
         df["playable_ml"] = np.nan
-    #print(f"compute_fog_index_playable_rule after ML 예측 df : {df}")
-    
+
     # --- DL 예측 ---
     try:
         dl_scaler = joblib.load("scaler_dl.joblib")
         dl_model = load_model("deep_playable.h5", compile=False)
-        Xdl = dl_scaler.transform(df[features].values)
-        df["playable_prob_dl"] = dl_model.predict(Xdl).reshape(-1)  # DL 예측 확률 (0~1)
-        df["playable_dl"] = (df["playable_prob_dl"] >= 0.5).astype(int)  # DL 예측 결과 (0=불가,1=가능)
-    except:
+
+        Xdl = df[features].values
+        if Xdl.shape[1] != len(dl_scaler.mean_):
+            raise ValueError(f"DL feature mismatch: df has {Xdl.shape[1]} features, scaler expects {len(dl_scaler.mean_)}")
+
+        Xdl_s = dl_scaler.transform(Xdl)
+        df["playable_prob_dl"] = dl_model.predict(Xdl_s).reshape(-1)
+        df["playable_dl"] = (df["playable_prob_dl"] >= 0.5).astype(int)
+    except Exception as e:
+        print("DL 예측 에러:", e)
         df["playable_prob_dl"] = np.nan
         df["playable_dl"] = np.nan
-    
-    #print(f"compute_fog_index_playable_rule after DL 예측 df : {df}")
-    
+
     # --- 최종 골프 가능 여부 결정 ---
+    # rule OR ML 예측 결과를 사용
     df["final_playable"] = df.apply(
         lambda r: int(bool(r.playable_rule) or bool(r.playable_ml)),
         axis=1
     )
-    #print(f"compute_fog_index_playable_rule after 최종 골프 가능 여부 결정 df : {df}")
 
     # --- summary 생성 ---
     summary = []
@@ -187,7 +208,7 @@ def compute_fog_index_playable_rule(df):
         comments = [c for c in comments if c]  # 빈 문자열 제거
         comment_str = " ".join(comments)
 
-        # 최종 요약 문구
+        # 최종 요약 문구 (HTML 줄바꿈 적용)
         txt = (
             f"{tstr} — 기온 {r.temperature:.1f}°C, "
             f"습도 {r.humidity:.0f}%, "
@@ -195,16 +216,14 @@ def compute_fog_index_playable_rule(df):
             f"강수량 {r.precipitation:.1f}mm, "
             f"안개지수 {r.fog_index:.1f} "
             f"→ 골프장: {'가능' if r.final_playable==1 else '불가'} "
-            f"(ML:{r.playable_prob_ml:.2f})"
-            "\n"  # ← 실제 줄바꿈
+            f"(ML:{r.playable_prob_ml:.2f}, DL:{r.playable_prob_dl:.2f})"
+            "\n"
             f"👉 {comment_str}"
         )
         txt = txt.replace("\n", "<br>")
         summary.append(txt)
-    
+
     df["summary"] = summary
-    #print(f"compute_fog_index_playable_rule after summary 문자열 summary : {summary}")
-    
     df = df.reset_index(drop=True)
 
         # --- 반환값 컬럼 설명 ---

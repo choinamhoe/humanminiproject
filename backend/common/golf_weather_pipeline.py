@@ -226,6 +226,9 @@ def fetch_weather_kma_long(lat, lon):
 
 # --- 0~24시간 통합 ---
 def predict_weather_for_location(lat, lon):
+    df_train = generate_synthetic_training_data(2000)
+    train_ml_model(df_train)
+    train_deep_model(df_train)
     df_short = fetch_weather_kma_short(lat, lon)
     df_long = fetch_weather_kma_long(lat, lon)
     #print(f"predict_weather_for_location after df_short : {df_short}, df_long : {df_long}")

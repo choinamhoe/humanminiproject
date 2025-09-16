@@ -14,8 +14,8 @@ async def post_controllers_golfList():
             status_code=status.HTTP_200_OK
         )
         print(f"controllers post_controllers_golfList end")
-    except Exception:
+    except Exception as e:
         return JSONResponse(
-            {"message":"테스트 실패"},
+            {"message":f"테스트 실패: {str(e)}"},
             status_code=status.HTTP_404_NOT_FOUND
         )
