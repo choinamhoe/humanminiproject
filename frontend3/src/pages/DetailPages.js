@@ -39,7 +39,7 @@ function DetailPages() {
             fog: w.fog_index,
             visibility: w.visibility,
 
-            playable: w.final_playable, // 최종 가능 여부
+            final_playable: w.final_playable,
             playableRule: w.playable_rule,
             playableProbML: w.playable_prob_ml,
             playableML: w.playable_ml,
