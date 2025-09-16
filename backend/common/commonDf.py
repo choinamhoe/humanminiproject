@@ -67,20 +67,55 @@ def postprocess_weather(data,dateColumn):
 
 import numpy as np 
 def parse_precip(pcp_str):
+    #print(f"강수량 start : {pcp_str}")
+    """
+    기상청 초단기예보 PCP(강수량) 문자열을 float(mm)로 변환
+    """
+    if pcp_str is None or (isinstance(pcp_str, float) and np.isnan(pcp_str)):
+        print("parse_precip 강수량이 nan")
+        return 0.0
     try:
         if isinstance(pcp_str, str):
-            if pcp_str in ["강수없음", "1mm미만"]:
+            s = pcp_str.strip()
+
+            # --- 케이스 1: 강수 없음
+            if s in ["강수없음", "0", "0.0"]:
                 return 0.0
-            elif "~" in pcp_str:  # "1~4" 형태
-                start, end = map(float, pcp_str.split("~"))
-                return (start + end) / 2  # 범위의 평균
-            else:
+
+            # --- 케이스 2: 1mm 미만 (띄어쓰기 포함)
+            if "1mm미만" in s or "1mm 미만" in s:
+                return 0.5  # 0~1mm → 평균 0.5로 가정
+
+            # --- 케이스 3: 범위 (~)
+            if "~" in s:
+                parts = s.replace("mm", "").replace(" ", "").split("~")
                 try:
-                    return float(pcp_str)
+                    start, end = map(float, parts)
+                    return (start + end) / 2
                 except:
                     return 0.0
-        else:
+
+            # --- 케이스 4: 이상 (최소값 기준)
+            if "이상" in s:
+                try:
+                    val = float(s.replace("mm 이상", "").replace("mm이상", "").strip())
+                    return val + 5.0  # 최소값 + 보정치
+                except:
+                    return 10.0  # fallback
+
+            # --- 케이스 5: 단순 숫자(mm 단위 포함)
+            if "mm" in s:
+                return float(s.replace("mm", "").strip())
+
+            # --- 케이스 6: 숫자만
+            return float(s)
+
+        # 숫자형 (float/int)
+        elif isinstance(pcp_str, (int, float)):
             if np.isnan(pcp_str):
                 return 0.0
-    except:
-        print("prec error",pcp_str, type(pcp_str))
+            return float(pcp_str)
+
+    except Exception as e:
+        print("precip parse error:", pcp_str, type(pcp_str), e)
+        return 0.0

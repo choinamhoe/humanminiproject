@@ -48,8 +48,9 @@ https://www.perplexity.ai/ 링크 같은거 찾아주는 LLM 서비스입니다.
       humidity          : float -> 상대습도(%)
       wind_speed        : float -> 풍속(m/s)
       visibility        : float -> 가시거리(m), 기본 10000m
-      precip_prob       : float -> 강수 확률(%)
-      precipitation     : float -> 강수량(mm)
+      precip_prob       : float    -> 강수 확률(%), 초단기예보에는 0.0
+      precipitation     : float    -> 1시간 강수량(mm), RN1 기준
+      precip_type       : int      -> 강수 형태, PTY 기준 (0=없음, 1=비, 2=비/눈, 3=눈, 4=소나기)
       fog_index         : float -> 안개 지수(0~100, 높을수록 안개 심함)
       playable_rule     : int   -> Rule 기반 골프 가능 여부 (0=불가,1=가능)
       playable_prob_ml  : float -> ML(RandomForest) 예측 확률(0~1)
