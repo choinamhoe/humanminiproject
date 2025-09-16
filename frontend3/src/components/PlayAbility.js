@@ -1,5 +1,11 @@
 function PlayAbility({ weather }) {
   const now = weather[0];
+
+  // ✅ 디버깅 로그
+  console.log("현재 weather[0] 데이터:", now);
+  console.log("final_playable 값 확인:", now.final_playable);
+  console.log("playable_ml:", now.playable_ml, "playable_dl:", now.playable_dl);
+
   const playableText =
     now.final_playable === 1 ? "✔️ 플레이 가능" : "❌ 플레이 불가";
 
