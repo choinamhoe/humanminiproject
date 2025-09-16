@@ -8,9 +8,7 @@ function WeatherNow({ weather }) {
       <div className="weather-grid">
         <div>🌡 기온: {now.T1H} ℃</div>
         <div>💧 습도: {now.humidity} %</div>
-        <div>
-          ☔ 강수량: {now.RN1} mm (강수확률 {now.rainProb}%)
-        </div>
+        <div>☔ 강수량: {now.RN1} mm</div>
         <div>💨 풍속: {now.WSD} m/s</div>
         <div>🌫 안개지수: {now.fog}</div>
         <div>👁 시정: {(now.visibility / 1000).toFixed(1)} km</div>
