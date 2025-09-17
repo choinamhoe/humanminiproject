@@ -39,6 +39,7 @@ const MapView = () => {
     const fetchData = async () => {
       try {
         const res = await axios.post("http://192.168.0.38:8000");
+        console.log("res", res);
         if (res?.data?.golfList?.golfInfo) {
           const data = res.data.golfList.golfInfo;
           const parsed = data
@@ -50,6 +51,11 @@ const MapView = () => {
               address: item.addr,
               area: item.area,
               imageUrl: item.imageUrl,
+              PR: item.PR,
+              RN: item.RN,
+              TA: item.TA,
+              WD: item.WD,
+              WS: item.WS,
             }))
             .filter((loc) => !isNaN(loc.latitude) && !isNaN(loc.longitude));
           setAreaIds(parsed);
@@ -99,6 +105,30 @@ const MapView = () => {
       navigate("/map"); // ✅ 라우팅도 초기화
     }
   };
+
+  const RainIcon = () =>
+    new L.Icon({
+      iconUrl: process.env.PUBLIC_URL + "/rain.png",
+      iconSize: [30, 30],
+      iconAnchor: [15, 30],
+      popupAnchor: [0, -28],
+    });
+
+  const WindIcon = () =>
+    new L.Icon({
+      iconUrl: process.env.PUBLIC_URL + "/wind.png",
+      iconSize: [30, 30],
+      iconAnchor: [15, 30],
+      popupAnchor: [0, -28],
+    });
+
+  const RainWindIcon = () =>
+    new L.Icon({
+      iconUrl: process.env.PUBLIC_URL + "/rain_wind.png",
+      iconSize: [30, 30],
+      iconAnchor: [15, 30],
+      popupAnchor: [0, -28],
+    });
 
   // ✅ 지역명 보정
   const normalizeArea = (name) => {
@@ -323,22 +353,78 @@ const MapView = () => {
           <Marker
             key={idx}
             position={[loc.latitude, loc.longitude]}
-            icon={selectedGolf?.id === loc.id ? yellowFlagIcon : getFlagIcon()} // ✅ 선택된 골프장은 노란색
+            icon={
+              Number(loc.RN) >= 1 && Number(loc.WS) >= 10
+                ? RainWindIcon()
+                : Number(loc.RN) >= 1
+                ? RainIcon()
+                : Number(loc.WS) >= 10
+                ? WindIcon()
+                : selectedGolf?.id === loc.id
+                ? yellowFlagIcon
+                : getFlagIcon()
+            }
             eventHandlers={{
               click: () => setSelectedGolf(loc), // ✅ 클릭 시 노란색으로 변경
             }}
           >
             <Popup>
-              <div className="popup-card">
-                <h3>{loc.name}</h3>
-                <p>{loc.address}</p>
+              <div
+                className="popup-card"
+                style={{ padding: "12px", maxWidth: "220px" }}
+              >
+                <h3 style={{ marginBottom: "8px" }}>{loc.name}</h3>
+                <p style={{ margin: 0, fontSize: "14px", color: "#555" }}>
+                  {loc.address}
+                </p>
+
+                <div
+                  style={{
+                    marginTop: "10px",
+                    fontSize: "14px",
+                    lineHeight: "1.6",
+                  }}
+                >
+                  <p>
+                    <span style={{ display: "inline-block", width: "24px" }}>
+                      ⏲️
+                    </span>
+                    기압: {loc.PR === 0 ? "데이터 없음" : `${loc.PR} hPa`}
+                  </p>
+                  <p>
+                    <span style={{ display: "inline-block", width: "24px" }}>
+                      ☔
+                    </span>
+                    강우량: {loc.RN} mm
+                  </p>
+                  <p>
+                    <span style={{ display: "inline-block", width: "24px" }}>
+                      🌡️
+                    </span>
+                    기온: {loc.TA} ℃
+                  </p>
+                  <p>
+                    <span style={{ display: "inline-block", width: "24px" }}>
+                      🧭
+                    </span>
+                    풍향: {Number(loc.WD).toFixed(1)}°
+                  </p>
+                  <p>
+                    <span style={{ display: "inline-block", width: "24px" }}>
+                      💨
+                    </span>
+                    풍속: {loc.WS} m/s
+                  </p>
+                </div>
+
                 <p
                   style={{
-                    marginTop: "8px",
+                    marginTop: "12px",
                     color: "#007bff",
                     cursor: "pointer",
                     textDecoration: "underline",
                     fontWeight: "bold",
+                    fontSize: "14px",
                   }}
                   onClick={() => {
                     setSelectedGolf(loc); // 패널 열릴 때도 선택 상태 유지
