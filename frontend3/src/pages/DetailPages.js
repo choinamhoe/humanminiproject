@@ -1,4 +1,3 @@
-// src/pages/DetailPages.js
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import WeatherNow from "../components/WeatherNow";
@@ -27,29 +26,37 @@ function DetailPages() {
       .then((data) => {
         setGolfInfo(data?.golfDetail?.golfInfo?.[0] || null);
 
+        // ✅ 디버깅: 서버 응답 확인
+        console.log(
+          "서버에서 받은 raw weather:",
+          data?.golfDetail?.golf24HourWeather
+        );
+
         // ✅ 날씨 데이터 매핑
         const mappedWeather = (data?.golfDetail?.golf24HourWeather || []).map(
           (w) => ({
             datetime: w.time,
-            T1H: w.temperature, // 기온
-            humidity: w.humidity,
-            WSD: w.wind_speed, // 풍속
-            RN1: w.precipitation, // 강수량
-            rainProb: w.precip_prob, // 강수확률
-            fog: w.fog_index,
-            visibility: w.visibility,
+            T1H: parseFloat(w.temperature), // ✅ 숫자로 변환
+            humidity: parseFloat(w.humidity),
+            WSD: parseFloat(w.wind_speed),
+            RN1: parseFloat(w.precipitation),
+            rainProb: parseFloat(w.precip_prob),
+            fog: parseFloat(w.fog_index),
+            visibility: parseFloat(w.visibility),
+
+            // ✅ 강수형태: snake_case, camelCase 둘 다 대응
+            precipitationType: Number(w.precip_type ?? w.precipType ?? 0),
 
             final_playable: w.final_playable,
             playableRule: w.playable_rule,
-            playableProbML: w.playable_prob_ml,
+            playableProbML: parseFloat(w.playable_prob_ml),
             playableML: w.playable_ml,
-            playableProbDL: w.playable_prob_dl,
+            playableProbDL: parseFloat(w.playable_prob_dl),
             playableDL: w.playable_dl,
 
             summary: w.summary,
           })
         );
-
         setWeather(mappedWeather);
       })
       .catch((err) => {
