@@ -18,10 +18,11 @@ const MapView = () => {
   const [searchResults, setSearchResults] = useState([]);
   const [hoveredItem, setHoveredItem] = useState(null); // 🔹 Hover 상태
   const mapRef = useRef();
-
+  const [draggedItem, setDraggedItem] = useState(null);
   const navigate = useNavigate();
   // ✅ 추가: 선택된 골프장
   const [selectedGolf, setSelectedGolf] = useState(null);
+  const searchBoxRef = useRef(null);
 
   // ✅ GeoJSON 불러오기
   useEffect(() => {
@@ -32,6 +33,23 @@ const MapView = () => {
         console.error("GeoJSON 오류:", err);
         setError("지역 경계 데이터를 불러오지 못했습니다.");
       });
+  }, []);
+  //외부 클릭 감지 useEffect 추가
+  useEffect(() => {
+    function handleClickOutside(event) {
+      if (
+        searchBoxRef.current &&
+        !searchBoxRef.current.contains(event.target)
+      ) {
+        // 박스 밖을 클릭하면 자동완성 닫기
+        setSearchResults([]);
+      }
+    }
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
   }, []);
 
   // ✅ 전국 데이터 불러오기
@@ -253,7 +271,10 @@ const MapView = () => {
             marginTop: "5px",
           }}
         >
-          <div style={{ position: "relative", width: "350px" }}>
+          <div
+            style={{ position: "relative", width: "350px" }}
+            ref={searchBoxRef}
+          >
             <input
               type="text"
               placeholder="지역명 또는 골프장명 검색"
