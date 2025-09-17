@@ -3,6 +3,7 @@ import React, { useEffect, useState, useRef } from "react";
 import { MapContainer, TileLayer, Marker, Popup, GeoJSON } from "react-leaflet";
 import { useNavigate } from "react-router-dom";
 import L from "leaflet";
+
 import "leaflet/dist/leaflet.css";
 import "./mapview.css";
 
@@ -18,38 +19,31 @@ const MapView = () => {
   const [searchResults, setSearchResults] = useState([]);
   const [hoveredItem, setHoveredItem] = useState(null); // 🔹 Hover 상태
   const mapRef = useRef();
-  const [draggedItem, setDraggedItem] = useState(null);
+
   const navigate = useNavigate();
   // ✅ 추가: 선택된 골프장
   const [selectedGolf, setSelectedGolf] = useState(null);
-  const searchBoxRef = useRef(null);
 
-  // ✅ GeoJSON 불러오기
+  // =========================
+  // ✅ GeoJSON 불러오기 (axios + 캐시 버스터)
+  // =========================
   useEffect(() => {
-    fetch(process.env.PUBLIC_URL + "/ctprvn.geojson")
-      .then((res) => res.json())
-      .then((data) => setGeoData(data))
-      .catch((err) => {
+    const loadGeoJSON = async () => {
+      try {
+        const url = `${window.location.origin}/ctprvn.geojson?ts=${Date.now()}`;
+        const res = await axios.get(url, {
+          headers: {
+            "Cache-Control": "no-cache",
+            Pragma: "no-cache",
+          },
+        });
+        setGeoData(res.data);
+      } catch (err) {
         console.error("GeoJSON 오류:", err);
         setError("지역 경계 데이터를 불러오지 못했습니다.");
-      });
-  }, []);
-  //외부 클릭 감지 useEffect 추가
-  useEffect(() => {
-    function handleClickOutside(event) {
-      if (
-        searchBoxRef.current &&
-        !searchBoxRef.current.contains(event.target)
-      ) {
-        // 박스 밖을 클릭하면 자동완성 닫기
-        setSearchResults([]);
       }
-    }
-
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
     };
+    loadGeoJSON();
   }, []);
 
   // ✅ 전국 데이터 불러오기
@@ -201,16 +195,64 @@ const MapView = () => {
       setSearchResults([]);
     }
   };
-
   // ✅ 검색 결과 클릭
   const handleResultClick = (item, type) => {
     if (type === "골프장") {
-      setFilteredLocations([item]);
+      // 🔹 areaIds에서 같은 id 찾아서 fullData로 사용
+      const fullData = areaIds.find((loc) => loc.id === item.id) || item;
+
+      setFilteredLocations([fullData]);
+
       if (mapRef.current) {
-        mapRef.current.setView([item.latitude, item.longitude], 12);
+        mapRef.current.setView([fullData.latitude, fullData.longitude], 12);
+
+        // ✅ 팝업 내용
+        const popupContent = `
+        <div class="popup-card" style="padding: 12px; max-width: 220px;">
+          <h3 style="margin-bottom: 8px;">${fullData.name}</h3>
+          <p style="margin: 0; font-size: 14px; color: #555;">${
+            fullData.address
+          }</p>
+
+          <div style="margin-top: 10px; font-size: 14px; line-height: 1.6;">
+            <p>⏲️ 기압: ${
+              fullData.PR ? `${fullData.PR} hPa` : "데이터 없음"
+            }</p>
+            <p>☔ 강우량: ${
+              fullData.RN !== undefined ? fullData.RN + " mm" : "데이터 없음"
+            }</p>
+            <p>🌡️ 기온: ${
+              fullData.TA !== undefined ? fullData.TA + " ℃" : "데이터 없음"
+            }</p>
+            <p>🧭 풍향: ${
+              fullData.WD !== undefined
+                ? Number(fullData.WD).toFixed(1) + "°"
+                : "데이터 없음"
+            }</p>
+            <p>💨 풍속: ${
+              fullData.WS !== undefined ? fullData.WS + " m/s" : "데이터 없음"
+            }</p>
+          </div>
+
+          <p style="margin-top: 12px; color: #007bff; cursor: pointer; text-decoration: underline; font-weight: bold; font-size: 14px;">
+            👉 <a href="/detail/${
+              fullData.id
+            }" style="color:#007bff; text-decoration:none;">실시간 골프장 정보 열기</a>
+          </p>
+        </div>
+      `;
+
+        // ✅ 팝업 강제 열기
+        L.popup()
+          .setLatLng([fullData.latitude, fullData.longitude])
+          .setContent(popupContent)
+          .openOn(mapRef.current);
       }
-      navigate(`/detail/${item.id}`);
+
+      // ✅ 우측 디테일 페이지 열기
+      navigate(`/detail/${fullData.id}`);
     } else {
+      // 🔹 지역 검색일 때 처리
       const parsed = areaIds.filter(
         (loc) =>
           loc.area.includes(searchTerm) || loc.address.includes(searchTerm)
@@ -244,15 +286,30 @@ const MapView = () => {
   // ✅ 로딩/에러 처리
   if (loading) {
     return (
-      <div className="loading-overlay">
-        <img
-          src={process.env.PUBLIC_URL + "/golfball.png"}
-          alt="loading"
-          className="golfball-spinner"
-        />
+      <div
+        className="loading-overlay"
+        style={{
+          backgroundImage: `url(${process.env.PUBLIC_URL}/grass.jpg)`,
+          backgroundSize: "cover",
+          backgroundPosition: "center",
+        }}
+      >
+        {/* 오버레이 */}
+        <div className="overlay"></div>
+
+        {/* 로딩 아이템 */}
+        <div className="loading-content">
+          <img
+            src={process.env.PUBLIC_URL + "/golfball2.png"}
+            alt="loading"
+            className="golfball-spinner"
+          />
+          <p className="loading-text">⛳ 라운딩 준비중...</p>
+        </div>
       </div>
     );
   }
+
   if (error) {
     return <div style={{ padding: "20px", color: "red" }}>{error}</div>;
   }
@@ -271,10 +328,7 @@ const MapView = () => {
             marginTop: "5px",
           }}
         >
-          <div
-            style={{ position: "relative", width: "350px" }}
-            ref={searchBoxRef}
-          >
+          <div style={{ position: "relative", width: "350px" }}>
             <input
               type="text"
               placeholder="지역명 또는 골프장명 검색"
@@ -572,7 +626,7 @@ const MapView = () => {
         }}
       >
         <button
-          onClick={handleReset}
+          onClick={() => window.location.reload()}
           style={{
             backgroundColor: "white",
             color: "black",
