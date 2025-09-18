@@ -1,0 +1,4 @@
+node_modules/
+
+DB/RDBMS
+__pycache__/

@@ -1,0 +1,121 @@
+/* src/pages/DetailPages.css */
+
+.detail-container {
+  position: relative;
+  padding: 20px;
+  font-family: sans-serif;
+  font-size: 14px;
+  line-height: 1.5;
+
+  /* ✅ 배경 이미지 */
+  background-image: url("/public/image/golf.png");
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+}
+
+/* ✅ 반투명 흰색 오버레이 (가독성 확보용) */
+.detail-container::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(255, 255, 255, 0.5); /* 유지 */
+  z-index: 0;
+}
+
+/* ✅ 컨텐츠는 항상 배경 위로 */
+.detail-container > * {
+  position: relative;
+  z-index: 1;
+}
+
+/* ✅ 닫기 버튼 */
+.detail-close-btn {
+  position: absolute;
+  top: 15px;
+  right: 15px;
+  display: block;
+  background: transparent;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  font-size: 14px;
+  cursor: pointer;
+  padding: 10px 16px;
+  line-height: 1.2;
+  transition: all 0.2s;
+  z-index: 10;
+}
+
+.detail-close-btn:hover {
+  background: rgba(0, 0, 0, 0.1);
+  border-color: #666;
+}
+
+.detail-title {
+  margin-top: 0;
+  font-size: 22px;
+  font-weight: bold;
+  padding-bottom: 8px;
+  border-bottom: 1px solid #ccc;
+}
+
+/* ✅ 공통 섹션 카드 스타일 */
+.detail-section {
+  margin-top: 20px;
+  margin-bottom: 20px;
+  padding: 16px 20px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.6); /* 0.75 → 0.6 */
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+}
+
+/* ✅ 섹션 제목 */
+.detail-section h3 {
+  font-size: 16px;
+  font-weight: bold;
+  margin-bottom: 12px;
+  border-left: 4px solid #4caf50;
+  padding-left: 8px;
+  color: #333;
+}
+
+.detail-item {
+  margin: 4px 0;
+}
+
+/* ✅ 현재 날씨 - 2열 레이아웃 */
+.weather-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr; /* 2열 */
+  gap: 8px 16px;
+  font-size: 14px;
+}
+
+/* ✅ 플레이 가능 여부 - 본문 스타일 */
+.detail-playable {
+  font-size: 14px;
+  font-weight: bold;
+  color: #333;
+  margin-bottom: 10px;
+}
+
+/* ✅ 추천 메시지 박스 */
+.detail-recommend {
+  background: #f9f9f9;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  padding: 12px;
+  font-size: 13px;
+  font-style: normal;
+  color: #444;
+  line-height: 1.6;
+}
+
+/* ✅ 날씨 예보 그래프 섹션 (카드 스타일 제거, margin만 유지) */
+.detail-weather-graph {
+  margin-top: 20px;
+  margin-bottom: 20px;
+}

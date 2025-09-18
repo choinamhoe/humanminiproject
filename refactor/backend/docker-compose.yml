@@ -1,0 +1,18 @@
+version: "3"
+
+services:
+  golf:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: golf_cron:latest
+    container_name: golf_cron
+    restart: always
+    volumes:
+      - ./cron/main.py:/app/main.py
+      - ./.env:/app/.env
+      - ./utils/:/app/utils
+      - ./source/:/app/source
+      - ./cron/logs/:/app/logs
+    extra_hosts:
+      - "host.docker.internal:host-gateway"

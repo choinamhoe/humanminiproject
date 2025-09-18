@@ -1,0 +1,22 @@
+name: golf_310
+channels:
+  - defaults
+dependencies:
+  - python=3.10
+  - pip
+  - pip:
+      - numpy==1.23
+      - tensorflow==2.8.0
+      - fastapi
+      - uvicorn
+      - opencv-python
+      - protobuf==3.20
+      - python-multipart
+      - scikit-learn
+      - dotenv
+      - sqlalchemy
+      - pymysql
+      - pandas
+      - geopy
+      - openpyxl
+      - geopandas
